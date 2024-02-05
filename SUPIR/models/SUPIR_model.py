@@ -45,9 +45,12 @@ class SUPIRModel(DiffusionEngine):
         return z
 
     @torch.no_grad()
-    def encode_first_stage_with_denoise(self, x, use_sample=True):
+    def encode_first_stage_with_denoise(self, x, use_sample=True, is_stage1=False):
         with torch.autocast("cuda", dtype=self.ae_dtype):
-            h = self.first_stage_model.denoise_encoder(x)
+            if is_stage1:
+                h = self.first_stage_model.denoise_encoder_s1(x)
+            else:
+                h = self.first_stage_model.denoise_encoder(x)
             moments = self.first_stage_model.quant_conv(h)
             posterior = DiagonalGaussianDistribution(moments)
             if use_sample:
@@ -65,11 +68,11 @@ class SUPIRModel(DiffusionEngine):
         return out.float()
 
     @torch.no_grad()
-    def batchify_denoise(self, x):
+    def batchify_denoise(self, x, is_stage1=False):
         '''
         [N, C, H, W], [-1, 1], RGB
         '''
-        x = self.encode_first_stage_with_denoise(x, use_sample=False)
+        x = self.encode_first_stage_with_denoise(x, use_sample=False, is_stage1=is_stage1)
         return self.decode_first_stage(x)
 
     @torch.no_grad()
