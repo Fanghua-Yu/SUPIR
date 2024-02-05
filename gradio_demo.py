@@ -143,10 +143,10 @@ with block:
             with gr.Row(equal_height=True):
                 with gr.Column():
                     gr.Markdown("<center>Input</center>")
-                    input_image = gr.Image(type="numpy", elem_id="image-input")
+                    input_image = gr.Image(type="numpy", elem_id="image-input", height=400, width=400)
                 with gr.Column():
                     gr.Markdown("<center>Stage1 Output</center>")
-                    denoise_image = gr.Image(type="numpy", elem_id="image-s1")
+                    denoise_image = gr.Image(type="numpy", elem_id="image-s1", height=400, width=400)
             prompt = gr.Textbox(label="Prompt", value="")
             with gr.Accordion("Stage1 options", open=False):
                 gamma_correction = gr.Slider(label="Gamma Correction", minimum=0.1, maximum=2.0, value=1.0, step=0.1)
