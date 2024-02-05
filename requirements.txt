@@ -1,5 +1,6 @@
 fastapi==0.95.1
-gradio==3.4.0
+gradio==4.16.0
+gradio_imageslider==0.0.17
 Markdown==3.4.1
 numpy==1.24.2
 requests==2.28.2
