@@ -6,12 +6,13 @@ from llava.llava_agent import LLavaAgent
 from CKPT_PTH import LLAVA_MODEL_PATH
 import os
 if torch.cuda.device_count() >= 2:
-    use_llava = True
+    SUPIR_device = 'cuda:0'
+    LLaVA_device = 'cuda:1'
+elif torch.cuda.device_count() == 1:
+    SUPIR_device = 'cuda:0'
+    LLaVA_device = 'cuda:0'
 else:
-    use_llava = False
-
-SUPIR_device = 'cuda:0'
-LLaVA_device = 'cuda:1'
+    raise ValueError('Currently support CUDA only.')
 
 # hyparams here
 parser = argparse.ArgumentParser()
@@ -45,8 +46,10 @@ parser.add_argument("--spt_linear_CFG", type=float, default=1.0)
 parser.add_argument("--spt_linear_s_stage2", type=float, default=0.)
 parser.add_argument("--ae_dtype", type=str, default="bf16", choices=['fp32', 'bf16'])
 parser.add_argument("--diff_dtype", type=str, default="fp16", choices=['fp32', 'fp16', 'bf16'])
+parser.add_argument("--no_llava", action='store_true', default=False)
 args = parser.parse_args()
 print(args)
+use_llava = not args.no_llava
 
 # load SUPIR
 model = create_SUPIR_model('options/SUPIR_v0.yaml', SUPIR_sign=args.SUPIR_sign).to(SUPIR_device)

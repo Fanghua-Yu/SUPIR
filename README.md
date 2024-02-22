@@ -12,7 +12,6 @@
 ---
 ## 🔧 Dependencies and Installation
 
-
 1. Clone repo
     ```bash
     git clone https://github.com/Fanghua-Yu/SUPIR.git
@@ -37,11 +36,11 @@
 
 
 #### Models we provided:
-* `SUPIR-v0Q`: (Coming Soon) Google Drive, Baidu Netdisk
+* `SUPIR-v0Q`: [Baidu Netdisk](https://pan.baidu.com/s/1lnefCZhBTeDWijqbj1jIyw?pwd=pjq6), Google Drive (Coming Soon)
     
     Default training settings with paper. High generalization and high image quality in most cases.
 
-* `SUPIR-v0F`: (Coming Soon) Google Drive, Baidu Netdisk
+* `SUPIR-v0F`: [Baidu Netdisk](https://pan.baidu.com/s/1AECN8NjiVuE3hvO8o-Ua6A?pwd=k2uz), Google Drive (Coming Soon)
 
     Training with light degradation settings. Stage1 encoder of `SUPIR-v0F` remains more details when facing light degradations.
 
@@ -53,11 +52,11 @@
 ---
 
 ## ⚡ Quick Inference
-
+### Val Dataset
+RealPhoto60: [Baidu Netdisk](https://pan.baidu.com/s/1CJKsPGtyfs8QEVCQ97voBA?pwd=aocg), Google Drive (Coming Soon)
 
 ### Usage of SUPIR
-
-```console
+```Shell
 Usage: 
 -- python test.py [options] 
 -- python gradio_demo.py [interactive options]
@@ -102,11 +101,14 @@ CUDA_VISIBLE_DEVICES=0,1 python test.py --img_dir '/opt/data/private/LV_Dataset/
 
 ### Gradio Demo
 ```Shell
-CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688
+CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688 --use_image_slider --log_history
 ```
+<p align="center">
+  <img src="assets/DemoGuide.png">
+</p>
+
 
 ### Online Demo (Coming Soon)
-
 
 
 ---

@@ -1,3 +1,5 @@
+import os
+
 import gradio as gr
 from gradio_imageslider import ImageSlider
 import argparse
@@ -10,12 +12,14 @@ from llava.llava_agent import LLavaAgent
 from CKPT_PTH import LLAVA_MODEL_PATH
 import einops
 import copy
+import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ip", type=str, default='0.0.0.0')
+parser.add_argument("--ip", type=str, default='127.0.0.1')
 parser.add_argument("--port", type=int, default='6688')
 parser.add_argument("--no_llava", action='store_true', default=False)
 parser.add_argument("--use_image_slider", action='store_true', default=False)
+parser.add_argument("--log_history", action='store_true', default=False)
 args = parser.parse_args()
 server_ip = args.ip
 server_port = args.port
@@ -40,7 +44,6 @@ if use_llava:
     llava_agent = LLavaAgent(LLAVA_MODEL_PATH, device=LLaVA_device)
 else:
     llava_agent = None
-
 
 def stage1_process(input_image, gamma_correction):
     LQ = HWC3(input_image)
@@ -69,6 +72,15 @@ def llave_process(input_image, temperature, top_p, qs=None):
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
                    linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select):
+    event_id = str(time.time_ns())
+    event_dict = {'event_id': event_id, 'localtime': time.ctime(), 'prompt': prompt, 'a_prompt': a_prompt,
+                  'n_prompt': n_prompt, 'num_samples': num_samples, 'upscale': upscale, 'edm_steps': edm_steps,
+                  's_stage1': s_stage1, 's_stage2': s_stage2, 's_cfg': s_cfg, 'seed': seed, 's_churn': s_churn,
+                  's_noise': s_noise, 'color_fix_type': color_fix_type, 'diff_dtype': diff_dtype, 'ae_dtype': ae_dtype,
+                  'gamma_correction': gamma_correction, 'linear_CFG': linear_CFG, 'linear_s_stage2': linear_s_stage2,
+                  'spt_linear_CFG': spt_linear_CFG, 'spt_linear_s_stage2': spt_linear_s_stage2,
+                  'model_select': model_select}
+
     if model_select != model.current_model:
         if model_select == 'v0-Q':
             print('load v0-Q')
@@ -79,7 +91,8 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
             model.load_state_dict(ckpt_F, strict=False)
             model.current_model = 'v0-F'
     input_image = HWC3(input_image)
-    input_image = upscale_image(input_image, upscale, unit_resolution=32)
+    input_image = upscale_image(input_image, upscale, unit_resolution=32,
+                                min_size=1024)
 
     LQ = np.array(input_image) / 255.0
     LQ = np.power(LQ, gamma_correction)
@@ -101,7 +114,16 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     x_samples = (einops.rearrange(samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().round().clip(
         0, 255).astype(np.uint8)
     results = [x_samples[i] for i in range(num_samples)]
-    return [input_image] + results
+
+    if args.log_history:
+        os.makedirs(f'./history/{event_id[:5]}/{event_id[5:]}', exist_ok=True)
+        with open(f'./history/{event_id[:5]}/{event_id[5:]}/logs.txt', 'w') as f:
+            f.write(str(event_dict))
+        f.close()
+        Image.fromarray(input_image).save(f'./history/{event_id[:5]}/{event_id[5:]}/LQ.png')
+        for i, result in enumerate(results):
+            Image.fromarray(result).save(f'./history/{event_id[:5]}/{event_id[5:]}/HQ_{i}.png')
+    return [input_image] + results, event_id, 3, ''
 
 def load_and_reset(param_setting):
     edm_steps = 50
@@ -118,23 +140,56 @@ def load_and_reset(param_setting):
     color_fix_type = 'Wavelet'
     spt_linear_CFG = 1.0
     spt_linear_s_stage2 = 0.0
+    linear_s_stage2 = False
     if param_setting == "Quality":
         s_cfg = 7.5
         linear_CFG = False
-        linear_s_stage2 = True
     elif param_setting == "Fidelity":
         s_cfg = 4.0
         linear_CFG = True
-        linear_s_stage2 = False
     else:
         raise NotImplementedError
     return edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt, color_fix_type, linear_CFG, \
         linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2
 
+
+def submit_feedback(event_id, fb_score, fb_text):
+    if args.log_history:
+        with open(f'./history/{event_id[:5]}/{event_id[5:]}/logs.txt', 'r') as f:
+            event_dict = eval(f.read())
+        f.close()
+        event_dict['feedback'] = {'score': fb_score, 'text': fb_text}
+        with open(f'./history/{event_id[:5]}/{event_id[5:]}/logs.txt', 'w') as f:
+            f.write(str(event_dict))
+        f.close()
+        return 'Submit successfully, thank you for your comments!'
+    else:
+        return 'Submit failed, the server is not set to log history.'
+
+title_md = """
+# **SUPIR: Practicing Model Scaling for Photo-Realistic Image Restoration**
+
+⚠️SUPIR is still a research project under tested and is not yet a stable commercial product.
+
+[[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)] &emsp; [[How to play](https://github.com/Fanghua-Yu/SUPIR/blob/master/assets/DemoGuide.png)]
+"""
+
+
+claim_md = """
+## **Terms of use**
+
+By using this service, users are required to agree to the following terms: The service is a research preview intended for non-commercial use only. It only provides limited safety measures and may generate offensive content. It must not be used for any illegal, harmful, violent, racist, or sexual purposes. The service may collect user dialogue data for future research. Please submit a feedback to us if you get any inappropriate answer! We will collect those to keep improving our models. For an optimal experience, please use desktop computers for this demo, as mobile devices may compromise its quality.
+
+## **License**
+
+The service is a research preview intended for non-commercial use only, subject to the model [License](https://github.com/Fanghua-Yu/SUPIR) of SUPIR.
+"""
+
+
 block = gr.Blocks(title='SUPIR').queue()
 with block:
     with gr.Row():
-        gr.Markdown("<center><font size=5>SUPIR Playground</font></center>")
+        gr.Markdown(title_md)
     with gr.Row():
         with gr.Column():
             with gr.Row(equal_height=True):
@@ -150,7 +205,8 @@ with block:
             with gr.Accordion("LLaVA options", open=False):
                 temperature = gr.Slider(label="Temperature", minimum=0., maximum=1.0, value=0.2, step=0.1)
                 top_p = gr.Slider(label="Top P", minimum=0., maximum=1.0, value=0.7, step=0.1)
-                qs = gr.Textbox(label="Question", value="Describe this image and its style in a very detailed manner.")
+                qs = gr.Textbox(label="Question", value="Describe this image and its style in a very detailed manner. "
+                                                        "The image is a realistic photography, not an art painting.")
             with gr.Accordion("Stage2 options", open=False):
                 num_samples = gr.Slider(label="Num Samples", minimum=1, maximum=4 if not args.use_image_slider else 1
                                         , value=1, step=1)
@@ -178,7 +234,7 @@ with block:
                         spt_linear_CFG = gr.Slider(label="CFG Start", minimum=1.0,
                                                         maximum=9.0, value=1.0, step=0.5)
                     with gr.Column():
-                        linear_s_stage2 = gr.Checkbox(label="Linear Stage2 Guidance", value=True)
+                        linear_s_stage2 = gr.Checkbox(label="Linear Stage2 Guidance", value=False)
                         spt_linear_s_stage2 = gr.Slider(label="Guidance Start", minimum=0.,
                                                         maximum=1., value=0., step=0.05)
                 with gr.Row():
@@ -213,8 +269,15 @@ with block:
                     param_setting = gr.Dropdown(["Quality", "Fidelity"], interactive=True, label="Param Setting",
                                                value="Quality")
                 with gr.Column():
-                    restart_button = gr.Button(value="Reset Param")
-
+                    restart_button = gr.Button(value="Reset Param", scale=2)
+            with gr.Accordion("Feedback", open=True):
+                fb_score = gr.Slider(label="Feedback Score", minimum=1, maximum=5, value=3, step=1,
+                                     interactive=True)
+                fb_text = gr.Textbox(label="Feedback Text", value="", placeholder='Please enter your feedback here.')
+                submit_button = gr.Button(value="Submit Feedback")
+    with gr.Row():
+        gr.Markdown(claim_md)
+        event_id = gr.Textbox(label="Event ID", value="", visible=False)
 
     llave_button.click(fn=llave_process, inputs=[denoise_image, temperature, top_p, qs], outputs=[prompt])
     denoise_button.click(fn=stage1_process, inputs=[input_image, gamma_correction],
@@ -222,8 +285,9 @@ with block:
     stage2_ips = [input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                   s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select]
-    diffusion_button.click(fn=stage2_process, inputs=stage2_ips, outputs=[result_gallery])
+    diffusion_button.click(fn=stage2_process, inputs=stage2_ips, outputs=[result_gallery, event_id, fb_score, fb_text])
     restart_button.click(fn=load_and_reset, inputs=[param_setting],
                          outputs=[edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt,
                                   color_fix_type, linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2])
+    submit_button.click(fn=submit_feedback, inputs=[event_id, fb_score, fb_text], outputs=[fb_text])
 block.launch(server_name=server_ip, server_port=server_port)

@@ -150,7 +150,7 @@ model:
         jpeg artifacts, deformed, lowres, over-smooth'
 
 SDXL_CKPT: /opt/data/private/AIGC_pretrain/SDXL_cache/sd_xl_base_1.0_0.9vae.safetensors
-SUPIR_CKPT_F: /opt/data/private/code/D1ff91v/experiments/1162-XL_base-ControlGLV-Sharp_RealESR-Mix_P512_B256/lightning_logs/version_3/checkpoints/SUPIR-v0F.ckpt
-SUPIR_CKPT_Q: /opt/data/private/code/D1ff91v/experiments/1163-XL_base-ControlGLV-Sharp_RealESR-Mix_P512_B256/lightning_logs/version_4/checkpoints/epoch=0-step=40000_dumped-ema.ckpt
+SUPIR_CKPT_F: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0F.ckpt
+SUPIR_CKPT_Q: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0Q.ckpt
 SUPIR_CKPT: ~
 
