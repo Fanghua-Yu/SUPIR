@@ -171,7 +171,7 @@ class Predictor(BasePredictor):
             seed = int.from_bytes(os.urandom(2), "big")
         print(f"Using seed: {seed}")
 
-        model = self.models["Q"]  # if model_name == "SUPIR-v0Q" else self.models["F"]
+        model = self.models["Q"] if model_name == "SUPIR-v0Q" else self.models["F"]
 
         lq_img = Image.open(str(image))
         lq_img, h0, w0 = PIL2Tensor(lq_img, upsacle=upscale, min_size=min_size)
