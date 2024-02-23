@@ -1,0 +1,41 @@
+# Configuration for Cog ⚙️
+# Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
+
+build:
+  gpu: true
+  system_packages:
+    - "libgl1-mesa-glx"
+    - "libglib2.0-0"
+  python_version: "3.11"
+  python_packages:
+    - sentencepiece==0.1.98
+    - tokenizers==0.13.3
+    - torch>=2.1.0
+    - torchvision>=0.16.0
+    - uvicorn==0.21.1
+    - transformers==4.28.1
+    - accelerate==0.18.0
+    - scikit-learn==1.2.2
+    - sentencepiece==0.1.98
+    - einops==0.7.0
+    - einops-exts==0.0.4
+    - timm==0.9.8
+    - openai-clip==1.0.1
+    - kornia==0.6.9
+    - matplotlib==3.7.1
+    - ninja==1.11.1
+    - omegaconf==2.3.0
+    - open-clip-torch==2.17.1
+    - opencv-python==4.7.0.72
+    - pandas==2.0.1
+    - Pillow==9.4.0
+    - pytorch-lightning==2.1.2
+    - PyYAML==6.0
+    - scipy==1.12.0
+    - tqdm==4.65.0
+    - triton==2.1.0
+    - webdataset==0.2.48
+    - xformers>=0.0.20
+  run:
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.6.0/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
+predict: "predict.py:Predictor"
