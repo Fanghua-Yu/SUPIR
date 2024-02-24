@@ -20,11 +20,14 @@ class CLIPVisionTower(nn.Module):
             self.load_model()
         else:
             # self.cfg_only = CLIPVisionConfig.from_pretrained(self.vision_tower_name)
-            self.cfg_only = CLIPVisionConfig.from_pretrained(LLAVA_CLIP_PATH)
+            self.cfg_only = CLIPVisionConfig.from_pretrained(
+                self.vision_tower_name if LLAVA_CLIP_PATH is None else LLAVA_CLIP_PATH)
 
     def load_model(self):
-        self.image_processor = CLIPImageProcessor.from_pretrained(LLAVA_CLIP_PATH)
-        self.vision_tower = CLIPVisionModel.from_pretrained(LLAVA_CLIP_PATH)
+        self.image_processor = CLIPImageProcessor.from_pretrained(
+            self.vision_tower_name if LLAVA_CLIP_PATH is None else LLAVA_CLIP_PATH)
+        self.vision_tower = CLIPVisionModel.from_pretrained(
+            self.vision_tower_name if LLAVA_CLIP_PATH is None else LLAVA_CLIP_PATH)
         self.vision_tower.requires_grad_(False)
 
         self.is_loaded = True

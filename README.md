@@ -10,6 +10,9 @@
 </p>
 
 ---
+#### ⚠ Due to the large RAM (60G) and VRAM (30G x2) costs of SUPIR, we are working on the online demo releasing.
+
+---
 ## 🔧 Dependencies and Installation
 
 1. Clone repo
@@ -27,6 +30,9 @@
     ```
 
 3. Download Checkpoints
+
+For users who can connect to huggingface, please setting `LLAVA_CLIP_PATH, SDXL_CLIP1_PATH, SDXL_CLIP2_CKPT_PTH` in `CKPT_PTH.py` as `None`. These CLIPs will be downloaded automatically. 
+
 #### Dependent Models
 * [SDXL CLIP Encoder-1](https://huggingface.co/openai/clip-vit-large-patch14)
 * [SDXL CLIP Encoder-2](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)
