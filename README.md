@@ -108,6 +108,9 @@ CUDA_VISIBLE_DEVICES=0,1 python test.py --img_dir '/opt/data/private/LV_Dataset/
 ### Gradio Demo
 ```Shell
 CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688 --use_image_slider --log_history
+
+# less VRAM & slower (12G for Diffusion, 16G for LLaVA)
+CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688 --use_image_slider --log_history --loading_half_params --use_tile_vae --load_8bit_llava
 ```
 <p align="center">
   <img src="assets/DemoGuide.png">

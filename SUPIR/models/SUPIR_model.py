@@ -7,6 +7,7 @@ import random
 from SUPIR.utils.colorfix import wavelet_reconstruction, adaptive_instance_normalization
 from pytorch_lightning import seed_everything
 from torch.nn.functional import interpolate
+from SUPIR.utils.tilevae import VAEHook
 
 class SUPIRModel(DiffusionEngine):
     def __init__(self, control_stage_config, ae_dtype='fp32', diffusion_dtype='fp32', p_p='', n_p='', *args, **kwargs):
@@ -131,7 +132,8 @@ class SUPIRModel(DiffusionEngine):
         batch_uc = copy.deepcopy(batch)
         batch_uc['txt'] = [n_p for _ in p]
 
-        c, uc = self.conditioner.get_unconditional_conditioning(batch, batch_uc)
+        with torch.cuda.amp.autocast(dtype=self.ae_dtype):
+            c, uc = self.conditioner.get_unconditional_conditioning(batch, batch_uc)
 
         denoiser = lambda input, sigma, c, control_scale: self.denoiser(
             self.model, input, sigma, c, control_scale, **kwargs
@@ -147,6 +149,20 @@ class SUPIRModel(DiffusionEngine):
         elif color_fix_type == 'AdaIn':
             samples = adaptive_instance_normalization(samples, x_stage1)
         return samples
+
+    def init_tile_vae(self, encoder_tile_size=512, decoder_tile_size=64):
+        self.first_stage_model.denoise_encoder.original_forward = self.first_stage_model.denoise_encoder.forward
+        self.first_stage_model.encoder.original_forward = self.first_stage_model.encoder.forward
+        self.first_stage_model.decoder.original_forward = self.first_stage_model.decoder.forward
+        self.first_stage_model.denoise_encoder.forward = VAEHook(
+            self.first_stage_model.denoise_encoder, encoder_tile_size, is_decoder=False, fast_decoder=False,
+            fast_encoder=False, color_fix=False, to_gpu=True)
+        self.first_stage_model.encoder.forward = VAEHook(
+            self.first_stage_model.encoder, encoder_tile_size, is_decoder=False, fast_decoder=False,
+            fast_encoder=False, color_fix=False, to_gpu=True)
+        self.first_stage_model.decoder.forward = VAEHook(
+            self.first_stage_model.decoder, decoder_tile_size, is_decoder=True, fast_decoder=False,
+            fast_encoder=False, color_fix=False, to_gpu=True)
 
 
 if __name__ == '__main__':
