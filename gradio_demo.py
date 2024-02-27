@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--ip", type=str, default='127.0.0.1')
 parser.add_argument("--share", type=str, default=False)
 parser.add_argument("--port", type=int, default='7860')
-parser.add_argument("--no_llava", action='store_true', default=True)
+parser.add_argument("--no_llava", action='store_true', default=False
 parser.add_argument("--use_image_slider", action='store_true', default=False)
 parser.add_argument("--log_history", action='store_true', default=False)
 parser.add_argument("--loading_half_params", action='store_true', default=False)
@@ -53,6 +53,7 @@ model = model.to(SUPIR_device)
 model.first_stage_model.denoise_encoder_s1 = copy.deepcopy(model.first_stage_model.denoise_encoder)
 model.current_model = 'v0-Q'
 ckpt_Q, ckpt_F = load_QF_ckpt('options/SUPIR_v0.yaml')
+
 # load LLaVA
 if use_llava:
     llava_agent = LLavaAgent(LLAVA_MODEL_PATH, device=LLaVA_device, load_8bit=args.load_8bit_llava, load_4bit=False)
