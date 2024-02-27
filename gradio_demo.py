@@ -24,6 +24,11 @@ parser.add_argument("--port", type=int, default='7860')
 parser.add_argument("--no_llava", action='store_true', default=True)
 parser.add_argument("--use_image_slider", action='store_true', default=False)
 parser.add_argument("--log_history", action='store_true', default=False)
+parser.add_argument("--loading_half_params", action='store_true', default=False)
+parser.add_argument("--use_tile_vae", action='store_true', default=False)
+parser.add_argument("--encoder_tile_size", type=int, default=512)
+parser.add_argument("--decoder_tile_size", type=int, default=64)
+parser.add_argument("--load_8bit_llava", action='store_true', default=False)
 args = parser.parse_args()
 server_ip = args.ip
 server_port = args.port
@@ -39,17 +44,23 @@ else:
     raise ValueError('Currently support CUDA only.')
 
 # load SUPIR
-model = create_SUPIR_model('options/SUPIR_v0.yaml', SUPIR_sign='Q').to(SUPIR_device)
+model = create_SUPIR_model('options/SUPIR_v0.yaml', SUPIR_sign='Q')
+if args.loading_half_params:
+    model = model.half()
+if args.use_tile_vae:
+    model.init_tile_vae(encoder_tile_size=512, decoder_tile_size=64)
+model = model.to(SUPIR_device)
 model.first_stage_model.denoise_encoder_s1 = copy.deepcopy(model.first_stage_model.denoise_encoder)
 model.current_model = 'v0-Q'
 ckpt_Q, ckpt_F = load_QF_ckpt('options/SUPIR_v0.yaml')
 # load LLaVA
 if use_llava:
-    llava_agent = LLavaAgent(LLAVA_MODEL_PATH, device=LLaVA_device)
+    llava_agent = LLavaAgent(LLAVA_MODEL_PATH, device=LLaVA_device, load_8bit=args.load_8bit_llava, load_4bit=False)
 else:
     llava_agent = None
 
 def stage1_process(input_image, gamma_correction):
+    torch.cuda.set_device(SUPIR_device)
     LQ = HWC3(input_image)
     LQ = fix_resize(LQ, 512)
     # stage1
@@ -66,6 +77,7 @@ def stage1_process(input_image, gamma_correction):
 
 def llave_process(input_image, temperature, top_p, qs=None):
     if use_llava:
+        torch.cuda.set_device(LLaVA_device)
         LQ = HWC3(input_image)
         LQ = Image.fromarray(LQ.astype('uint8'))
         captions = llava_agent.gen_image_caption([LQ], temperature=temperature, top_p=top_p, qs=qs)
@@ -76,6 +88,7 @@ def llave_process(input_image, temperature, top_p, qs=None):
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
                    linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,random_seed, progress=gr.Progress()):
+    torch.cuda.set_device(SUPIR_device)
     event_id = str(time.time_ns())
     event_dict = {'event_id': event_id, 'localtime': time.ctime(), 'prompt': prompt, 'a_prompt': a_prompt,
                   'n_prompt': n_prompt, 'num_samples': num_samples, 'upscale': upscale, 'edm_steps': edm_steps,
