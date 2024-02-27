@@ -86,10 +86,57 @@ def llave_process(input_image, temperature, top_p, qs=None):
         captions = ['LLaVA is not available. Please add text manually.']
     return captions[0]
 
+
+def batch_upscale(batch_process_folder,outputs_folder, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
+                   s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
+                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images, random_seed, progress=gr.Progress()):
+    import os
+    import numpy as np
+    from PIL import Image
+
+    # Get the list of image files in the folder
+    image_files = [file for file in os.listdir(batch_process_folder) if file.lower().endswith((".png", ".jpg", ".jpeg"))]
+    total_images = len(image_files)
+    main_prompt = prompt
+    # Iterate over all image files in the folder
+    for index, file_name in enumerate(image_files):
+        try:
+            progress((index + 1) / total_images, f"Processing {index + 1}/{total_images} image")
+            # Construct the full file path
+            file_path = os.path.join(batch_process_folder, file_name)
+            prompt = main_prompt
+            # Open the image file and convert it to a NumPy array
+            with Image.open(file_path) as img:
+                img_array = np.asarray(img)
+
+            # Construct the path for the prompt text file
+            base_name = os.path.splitext(file_name)[0]
+            prompt_file_path = os.path.join(batch_process_folder, f"{base_name}.txt")
+
+            # Read the prompt from the text file
+            if os.path.exists(prompt_file_path):
+                with open(prompt_file_path, "r", encoding="utf-8") as f:
+                    prompt = f.read().strip()
+
+            # Call the stage2_process method for the image
+            stage2_process(img_array, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
+                           s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
+                           linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images, random_seed, dont_update_progress=True, outputs_folder=outputs_folder)
+
+            # Update progress
+        except Exception as e:
+            print(f"Error processing {file_name}: {e}")
+            continue
+    return "All Done"
+
+
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,random_seed, progress=gr.Progress()):
+
+                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,random_seed,dont_update_progress=False,outputs_folder="outputs", progress=gr.Progress()):
+
     torch.cuda.set_device(SUPIR_device)
+
     event_id = str(time.time_ns())
     event_dict = {'event_id': event_id, 'localtime': time.ctime(), 'prompt': prompt, 'a_prompt': a_prompt,
                   'n_prompt': n_prompt, 'num_samples': num_samples, 'upscale': upscale, 'edm_steps': edm_steps,
@@ -127,9 +174,15 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    if outputs_folder.strip() != "" and outputs_folder != "outputs":
+        output_dir = outputs_folder
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
     all_results = []
     counter = 1
-    progress(0 / num_images, desc="Generating images")
+    if not dont_update_progress:
+        progress(0 / num_images, desc="Generating images")
     for _ in range(num_images):
         if random_seed or num_images>1:
             seed = np.random.randint(0, 2147483647)
@@ -146,7 +199,8 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
         image_generation_time = time.time() - start_time
         desc=f"Generated image {counter}/{num_images} in {image_generation_time:.2f} seconds"
         counter=counter+1
-        progress(counter / num_images, desc=desc)
+        if not dont_update_progress:
+            progress(counter / num_images, desc=desc)
         print(desc)  # Print the progress
         start_time = time.time()  # Reset the start time for the next image
 
@@ -211,7 +265,7 @@ def submit_feedback(event_id, fb_score, fb_text):
 title_md = """
 # **SUPIR: Practicing Model Scaling for Photo-Realistic Image Restoration**
 
-⚠️SUPIR is still a research project under tested and is not yet a stable commercial product.
+1 Click Installer (auto download models as well) : https://www.patreon.com/posts/99176057
 
 [[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)] &emsp; [[How to play](https://github.com/Fanghua-Yu/SUPIR/blob/master/assets/DemoGuide.png)]
 """
@@ -277,7 +331,7 @@ with block:
 
 
         with gr.Column():
-            gr.Markdown("<center>Stage2 Output</center>")
+            gr.Markdown("<center>Upscaled Images Output</center>")
             if not args.use_image_slider:
                 result_gallery = gr.Gallery(label='Output', show_label=False, elem_id="gallery1")
             else:
@@ -289,6 +343,14 @@ with block:
                     llave_button = gr.Button(value="LlaVa Run")
                 with gr.Column():
                     diffusion_button = gr.Button(value="Stage2 Run")
+            with gr.Row():
+                with gr.Column():
+                    batch_process_folder = gr.Textbox(label="Batch Processing Input Folder Path - If image_file_name.txt exists it will be read and used as prompt (optional). Uses same settings of single upscale (Stage 2 Run). If no caption txt it will use the Prompt you written. It can be empty as well.", placeholder="e.g. R:\SUPIR video\comparison_images")
+                    outputs_folder = gr.Textbox(label="Batch Processing Output Folder Path - If left empty images are saved in default folder", placeholder="e.g. R:\SUPIR video\comparison_images\outputs")
+            with gr.Row():
+                with gr.Column():
+                    batch_upscale_button = gr.Button(value="Start Batch Upscaling")
+                    outputlabel = gr.Label("Batch Processing Progress")
             with gr.Row():
                 with gr.Column():
                     param_setting = gr.Dropdown(["Quality", "Fidelity"], interactive=True, label="Param Setting",
@@ -342,4 +404,8 @@ with block:
                          outputs=[edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt,
                                   color_fix_type, linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2])
     submit_button.click(fn=submit_feedback, inputs=[event_id, fb_score, fb_text], outputs=[fb_text])
+    stage2_ips_batch = [batch_process_folder,outputs_folder, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
+                  s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
+                  linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select,num_images,random_seed]
+    batch_upscale_button.click(fn=batch_upscale, inputs=stage2_ips_batch, outputs=outputlabel, show_progress=True, queue=True)
 block.launch(server_name=server_ip, server_port=server_port, share=args.share, inbrowser=True)
