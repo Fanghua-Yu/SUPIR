@@ -150,7 +150,7 @@ model:
         jpeg artifacts, deformed, lowres, over-smooth'
 
 SDXL_CKPT: models/sd_xl_base_1.0_0.9vae.safetensors
-SUPIR_CKPT_F: models/v0F.ckpt
-SUPIR_CKPT_Q: models/v0Q.ckpt
+SUPIR_CKPT_F: models/SUPIR-v0F.ckpt
+SUPIR_CKPT_Q: models/SUPIR-v0Q.ckpt
 SUPIR_CKPT: ~
 

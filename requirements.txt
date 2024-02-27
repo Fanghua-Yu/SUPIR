@@ -33,3 +33,4 @@ tqdm==4.65.0
 urllib3==1.26.15
 webdataset==0.2.48
 fastapi
+diffusers
