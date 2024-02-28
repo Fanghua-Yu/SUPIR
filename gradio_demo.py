@@ -307,7 +307,7 @@ with block:
                         num_samples = gr.Slider(label="Batch Size", minimum=1, maximum=4 if not args.use_image_slider else 1
                                         , value=1, step=1)
                   with gr.Column():
-                    upscale = gr.Slider(label="Upscale", minimum=1, maximum=8, value=1, step=0.1
+                    upscale = gr.Slider(label="Upscale", minimum=1, maximum=8, value=1, step=0.1)
                     random_seed = gr.Checkbox(label="Randomize Seed", value=True)
                with gr.Row():
                     edm_steps = gr.Slider(label="Steps", minimum=20, maximum=200, value=50, step=1)
