@@ -1,6 +1,6 @@
 ## (CVPR2024) Scaling Up to Excellence: Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild
 
-> [[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)] &emsp; [Online Demo (Coming soon)] <br>
+> [[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)]<br>
 > Fanghua, Yu, [Jinjin Gu](https://www.jasongt.com/), Zheyuan Li, Jinfan Hu, Xiangtao Kong, [Xintao Wang](https://xinntao.github.io/), [Jingwen He](https://scholar.google.com.hk/citations?user=GUxrycUAAAAJ), [Yu Qiao](https://scholar.google.com.hk/citations?user=gFtI-8QAAAAJ), [Chao Dong](https://scholar.google.com.hk/citations?user=OSDCB0UAAAAJ) <br>
 > Shenzhen Institute of Advanced Technology; Shanghai AI Laboratory; University of Sydney; The Hong Kong Polytechnic University; ARC Lab, Tencent PCG; The Chinese University of Hong Kong <br>
 
@@ -36,7 +36,7 @@ For users who can connect to huggingface, please setting `LLAVA_CLIP_PATH, SDXL_
 #### Dependent Models
 * [SDXL CLIP Encoder-1](https://huggingface.co/openai/clip-vit-large-patch14)
 * [SDXL CLIP Encoder-2](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)
-* [SDXL base 1.0_0.9vae](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/sd_xl_base_1.0_0.9vae.safetensors)
+* [Juggernaut-XL_v9_RunDiffusionPhoto_v2](https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors)
 * [LLaVA CLIP](https://huggingface.co/openai/clip-vit-large-patch14-336)
 * [LLaVA v1.5 7B](https://huggingface.co/liuhaotian/llava-v1.5-7b)
 
@@ -117,7 +117,10 @@ CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688 --use_im
 </p>
 
 
-### Online Demo (Coming Soon)
+### Online Resources & Demos
+
+1. [Replicate Demo](https://replicate.com/cjwbw/supir)
+2. [RunPod Template](https://runpod.io/console/gpu-cloud?template=aa31uo64wv&ref=2xxro4sy)
 
 
 ---
