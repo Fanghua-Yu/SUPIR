@@ -38,7 +38,7 @@ For users who can connect to huggingface, please setting `LLAVA_CLIP_PATH, SDXL_
 * [SDXL CLIP Encoder-2](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)
 * [SDXL base 1.0_0.9vae](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/sd_xl_base_1.0_0.9vae.safetensors)
 * [LLaVA CLIP](https://huggingface.co/openai/clip-vit-large-patch14-336)
-* [LLaVA v1.5 13B](https://huggingface.co/liuhaotian/llava-v1.5-13b)
+* [LLaVA v1.5 7B](https://huggingface.co/liuhaotian/llava-v1.5-7b)
 
 
 #### Models we provided:
