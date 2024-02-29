@@ -61,7 +61,7 @@ def batch_upscale(batch_process_folder, outputs_folder, prompt, a_prompt, n_prom
     # Iterate over all image files in the folder
     for index, file_name in enumerate(image_files):
         try:
-            progress((index + 1) / total_images, f"Processing {index + 1}/{total_images} image")
+            progress((index + 1) / total_images, f"Processing {index + 1}/{total_images} images")
             # Construct the full file path
             file_path = os.path.join(batch_process_folder, file_name)
             prompt = main_prompt
@@ -88,7 +88,7 @@ def batch_upscale(batch_process_folder, outputs_folder, prompt, a_prompt, n_prom
         except Exception as e:
             print(f"Error processing {file_name}: {e}")
             continue
-    return "All Done"
+    return "Batch Processing Complete"
 
 
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
@@ -131,8 +131,8 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
 
     if outputs_folder.strip() != "":
         output_dir = outputs_folder
-    elif args.outputs_folder:
-        output_dir = args.outputs_folder
+    elif outputs_folder_arg:
+        output_dir = outputs_folder_arg
     else:
         output_dir = os.path.join("outputs")
 
@@ -163,7 +163,6 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
         if not dont_update_progress:
             progress(counter / num_images, desc=desc)
         print(desc)  # Print the progress
-        start_time = time.time()  # Reset the start time for the next image
 
         for i, result in enumerate(results):
             timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
@@ -309,10 +308,13 @@ def launch_ui(launch_kwargs):
                     with gr.Column():
                         batch_process_folder = gr.Textbox(
                             label="Batch Processing Input Folder Path - If image_file_name.txt exists it will be read and used as prompt (optional). Uses same settings of single upscale (Stage 2 Run). If no caption txt it will use the Prompt you written. It can be empty as well.",
-                            placeholder="e.g. /workspace/SUPIR_video/comparison_images")
+                            placeholder="e.g. /workspace/SUPIR_video/comparison_images"
+                        )
                         batch_outputs_folder = gr.Textbox(
                             label="Batch Processing Output Folder Path - If left empty images are saved in default folder",
-                            placeholder="e.g. /workspace/SUPIR_video/comparison_images/outputs")
+                            placeholder="e.g. /workspace/SUPIR_video/comparison_images/outputs",
+                            value=outputs_folder_arg
+                        )
                 with gr.Row():
                     with gr.Column():
                         batch_upscale_button = gr.Button(value="Start Batch Upscaling")
@@ -396,6 +398,7 @@ if __name__ == "__main__":
     parser.add_argument("--outputs_folder", type=str, default='outputs')
     args = parser.parse_args()
     use_llava = not args.no_llava
+    outputs_folder_arg = args.outputs_folder
 
     if torch.cuda.device_count() >= 2:
         SUPIR_device = 'cuda:0'
