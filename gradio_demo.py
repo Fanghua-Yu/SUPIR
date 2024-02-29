@@ -60,6 +60,7 @@ if use_llava:
 else:
     llava_agent = None
 
+
 def stage1_process(input_image, gamma_correction):
     torch.cuda.set_device(SUPIR_device)
     LQ = HWC3(input_image)
@@ -76,7 +77,8 @@ def stage1_process(input_image, gamma_correction):
     LQ = LQ.round().clip(0, 255).astype(np.uint8)
     return LQ
 
-def llave_process(input_image, temperature, top_p, qs=None):
+
+def llava_process(input_image, temperature, top_p, qs=None):
     if use_llava:
         torch.cuda.set_device(LLaVA_device)
         LQ = HWC3(input_image)
@@ -87,9 +89,10 @@ def llave_process(input_image, temperature, top_p, qs=None):
     return captions[0]
 
 
-def batch_upscale(batch_process_folder,outputs_folder, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
-                   s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images, random_seed, progress=gr.Progress()):
+def batch_upscale(batch_process_folder, outputs_folder, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps,
+                  s_stage1, s_stage2, s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype,
+                  gamma_correction, linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select,
+                  num_images, random_seed, progress=gr.Progress()):
     import os
     import numpy as np
     from PIL import Image
@@ -121,7 +124,8 @@ def batch_upscale(batch_process_folder,outputs_folder, prompt, a_prompt, n_promp
             # Call the stage2_process method for the image
             stage2_process(img_array, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                            s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                           linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images, random_seed, dont_update_progress=True, outputs_folder=outputs_folder)
+                           linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
+                           random_seed, dont_update_progress=True, outputs_folder=outputs_folder)
 
             # Update progress
         except Exception as e:
@@ -132,8 +136,8 @@ def batch_upscale(batch_process_folder,outputs_folder, prompt, a_prompt, n_promp
 
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-
-                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,random_seed,dont_update_progress=False,outputs_folder="outputs", progress=gr.Progress()):
+                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
+                   random_seed, dont_update_progress=False, outputs_folder="outputs", progress=gr.Progress()):
 
     torch.cuda.set_device(SUPIR_device)
 
@@ -156,8 +160,7 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
             model.load_state_dict(ckpt_F, strict=False)
             model.current_model = 'v0-F'
     input_image = HWC3(input_image)
-    input_image = upscale_image(input_image, upscale, unit_resolution=32,
-                                min_size=1024)
+    input_image = upscale_image(input_image, upscale, unit_resolution=32, min_size=1024)
 
     LQ = np.array(input_image) / 255.0
     LQ = np.power(LQ, gamma_correction)
@@ -197,8 +200,8 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
             0, 255).astype(np.uint8)
         results = [x_samples[i] for i in range(num_samples)]
         image_generation_time = time.time() - start_time
-        desc=f"Generated image {counter}/{num_images} in {image_generation_time:.2f} seconds"
-        counter=counter+1
+        desc = f"Generated image {counter}/{num_images} in {image_generation_time:.2f} seconds"
+        counter = counter+1
         if not dont_update_progress:
             progress(counter / num_images, desc=desc)
         print(desc)  # Print the progress
@@ -210,7 +213,6 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
             Image.fromarray(result).save(save_path)
         all_results.extend(results)
 
-
     if args.log_history:
         os.makedirs(f'./history/{event_id[:5]}/{event_id[5:]}', exist_ok=True)
         with open(f'./history/{event_id[:5]}/{event_id[5:]}/logs.txt', 'w') as f:
@@ -220,6 +222,7 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
         for i, result in enumerate(all_results):
             Image.fromarray(result).save(f'./history/{event_id[:5]}/{event_id[5:]}/HQ_{i}.png')
     return [input_image] + all_results, event_id, 3, '', seed
+
 
 def load_and_reset(param_setting):
     edm_steps = 50
@@ -262,10 +265,11 @@ def submit_feedback(event_id, fb_score, fb_text):
     else:
         return 'Submit failed, the server is not set to log history.'
 
+
 title_md = """
 # **SUPIR: Practicing Model Scaling for Photo-Realistic Image Restoration**
 
-1 Click Installer (auto download models as well) : https://www.patreon.com/posts/99176057
+⚠️SUPIR is still a research project under tested and is not yet a stable commercial product.
 
 [[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)] &emsp; [[How to play](https://github.com/Fanghua-Yu/SUPIR/blob/master/assets/DemoGuide.png)]
 """
@@ -329,7 +333,6 @@ with block:
                                                 'worst quality, low quality, frames, watermark, signature, jpeg artifacts, '
                                                 'deformed, lowres, over-smooth')
 
-
         with gr.Column():
             gr.Markdown("<center>Upscaled Images Output</center>")
             if not args.use_image_slider:
@@ -340,7 +343,7 @@ with block:
                 with gr.Column():
                     denoise_button = gr.Button(value="Stage1 Run")
                 with gr.Column():
-                    llave_button = gr.Button(value="LlaVa Run")
+                    llava_button = gr.Button(value="LlaVa Run")
                 with gr.Column():
                     diffusion_button = gr.Button(value="Stage2 Run")
             with gr.Row():
@@ -393,7 +396,7 @@ with block:
         gr.Markdown(claim_md)
         event_id = gr.Textbox(label="Event ID", value="", visible=False)
 
-    llave_button.click(fn=llave_process, inputs=[denoise_image, temperature, top_p, qs], outputs=[prompt])
+    llava_button.click(fn=llava_process, inputs=[denoise_image, temperature, top_p, qs], outputs=[prompt])
     denoise_button.click(fn=stage1_process, inputs=[input_image, gamma_correction],
                          outputs=[denoise_image])
     stage2_ips = [input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
