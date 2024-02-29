@@ -121,7 +121,7 @@ CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688 --use_im
 
 1. [Replicate Demo](https://replicate.com/cjwbw/supir)
 2. [RunPod Template](https://runpod.io/console/gpu-cloud?template=aa31uo64wv&ref=2xxro4sy)
-
+3. [YouTube Tutorial](https://www.youtube.com/watch?v=PqREA6-bC3w)
 
 ---
 
