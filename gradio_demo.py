@@ -129,7 +129,11 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     model.ae_dtype = convert_dtype(ae_dtype)
     model.model.dtype = convert_dtype(diff_dtype)
 
-    output_dir = os.path.join("outputs")
+    if args.outputs_folder:
+        output_dir = args.outputs_folder
+    else:
+        output_dir = os.path.join("outputs")
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -308,10 +312,10 @@ def launch_ui(launch_kwargs):
                     with gr.Column():
                         batch_process_folder = gr.Textbox(
                             label="Batch Processing Input Folder Path - If image_file_name.txt exists it will be read and used as prompt (optional). Uses same settings of single upscale (Stage 2 Run). If no caption txt it will use the Prompt you written. It can be empty as well.",
-                            placeholder="e.g. R:\SUPIR video\comparison_images")
+                            placeholder="e.g. /workspace/SUPIR_video/comparison_images")
                         outputs_folder = gr.Textbox(
                             label="Batch Processing Output Folder Path - If left empty images are saved in default folder",
-                            placeholder="e.g. R:\SUPIR video\comparison_images\outputs")
+                            placeholder="e.g. /workspace/SUPIR_video/comparison_images/outputs"),
                 with gr.Row():
                     with gr.Column():
                         batch_upscale_button = gr.Button(value="Start Batch Upscaling")
@@ -359,26 +363,26 @@ def launch_ui(launch_kwargs):
             event_id = gr.Textbox(label="Event ID", value="", visible=False)
 
         llava_button.click(fn=llava_process, inputs=[denoise_image, temperature, top_p, qs], outputs=[prompt])
-        denoise_button.click(fn=stage1_process, inputs=[input_image, gamma_correction],
-                             outputs=[denoise_image])
+        denoise_button.click(fn=stage1_process, inputs=[input_image, gamma_correction], outputs=[denoise_image])
         stage2_ips = [input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                       s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
                       linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
                       random_seed]
         diffusion_button.click(fn=stage2_process, inputs=stage2_ips,
-                               outputs=[result_gallery, event_id, fb_score, fb_text, seed], show_progress=True, queue=True)
+                               outputs=[result_gallery, event_id, fb_score, fb_text, seed],
+                               show_progress=True,
+                               queue=True)
         restart_button.click(fn=load_and_reset, inputs=[param_setting],
                              outputs=[edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt,
                                       color_fix_type, linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2])
         submit_button.click(fn=submit_feedback, inputs=[event_id, fb_score, fb_text], outputs=[fb_text])
         stage2_ips_batch = [batch_process_folder, outputs_folder, prompt, a_prompt, n_prompt, num_samples, upscale,
-                            edm_steps, s_stage1, s_stage2,
-                            s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                            linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
-                            random_seed]
+                            edm_steps, s_stage1, s_stage2, s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype,
+                            ae_dtype, gamma_correction, linear_CFG, linear_s_stage2, spt_linear_CFG,
+                            spt_linear_s_stage2, model_select, num_images, random_seed]
         batch_upscale_button.click(fn=batch_upscale, inputs=stage2_ips_batch, outputs=outputlabel, show_progress=True,
                                    queue=True)
-    interface.launch(server_name=server_ip, server_port=server_port, share=args.share, inbrowser=True)
+    interface.launch(**launch_kwargs)
 
 
 if __name__ == "__main__":
@@ -394,7 +398,7 @@ if __name__ == "__main__":
     parser.add_argument("--encoder_tile_size", type=int, default=512)
     parser.add_argument("--decoder_tile_size", type=int, default=64)
     parser.add_argument("--load_8bit_llava", action='store_true', default=False)
-    parser.add_argument("--outputs_folder", type=str)
+    parser.add_argument("--outputs_folder", type=str, default='outputs')
     args = parser.parse_args()
     use_llava = not args.no_llava
 
