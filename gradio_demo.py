@@ -129,18 +129,15 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     model.ae_dtype = convert_dtype(ae_dtype)
     model.model.dtype = convert_dtype(diff_dtype)
 
-    if args.outputs_folder:
+    if outputs_folder.strip() != "":
+        output_dir = outputs_folder
+    elif args.outputs_folder:
         output_dir = args.outputs_folder
     else:
         output_dir = os.path.join("outputs")
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
-    if outputs_folder.strip() != "" and outputs_folder != "outputs":
-        output_dir = outputs_folder
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
     all_results = []
     counter = 1
@@ -313,13 +310,13 @@ def launch_ui(launch_kwargs):
                         batch_process_folder = gr.Textbox(
                             label="Batch Processing Input Folder Path - If image_file_name.txt exists it will be read and used as prompt (optional). Uses same settings of single upscale (Stage 2 Run). If no caption txt it will use the Prompt you written. It can be empty as well.",
                             placeholder="e.g. /workspace/SUPIR_video/comparison_images")
-                        outputs_folder = gr.Textbox(
+                        batch_outputs_folder = gr.Textbox(
                             label="Batch Processing Output Folder Path - If left empty images are saved in default folder",
-                            placeholder="e.g. /workspace/SUPIR_video/comparison_images/outputs"),
+                            placeholder="e.g. /workspace/SUPIR_video/comparison_images/outputs")
                 with gr.Row():
                     with gr.Column():
                         batch_upscale_button = gr.Button(value="Start Batch Upscaling")
-                        outputlabel = gr.Label("Batch Processing Progress")
+                        batch_output_label = gr.Label("Batch Processing Progress")
                 with gr.Row():
                     with gr.Column():
                         param_setting = gr.Dropdown(["Quality", "Fidelity"], interactive=True, label="Param Setting",
@@ -364,11 +361,12 @@ def launch_ui(launch_kwargs):
 
         llava_button.click(fn=llava_process, inputs=[denoise_image, temperature, top_p, qs], outputs=[prompt])
         denoise_button.click(fn=stage1_process, inputs=[input_image, gamma_correction], outputs=[denoise_image])
-        stage2_ips = [input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
-                      s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                      linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
-                      random_seed]
-        diffusion_button.click(fn=stage2_process, inputs=stage2_ips,
+        stage_2_common_inputs = [prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
+                              s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
+                              linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
+                              random_seed]
+        stage2_inputs = [input_image] + stage_2_common_inputs
+        diffusion_button.click(fn=stage2_process, inputs=stage2_inputs,
                                outputs=[result_gallery, event_id, fb_score, fb_text, seed],
                                show_progress=True,
                                queue=True)
@@ -376,11 +374,8 @@ def launch_ui(launch_kwargs):
                              outputs=[edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt,
                                       color_fix_type, linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2])
         submit_button.click(fn=submit_feedback, inputs=[event_id, fb_score, fb_text], outputs=[fb_text])
-        stage2_ips_batch = [batch_process_folder, outputs_folder, prompt, a_prompt, n_prompt, num_samples, upscale,
-                            edm_steps, s_stage1, s_stage2, s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype,
-                            ae_dtype, gamma_correction, linear_CFG, linear_s_stage2, spt_linear_CFG,
-                            spt_linear_s_stage2, model_select, num_images, random_seed]
-        batch_upscale_button.click(fn=batch_upscale, inputs=stage2_ips_batch, outputs=outputlabel, show_progress=True,
+        stage2_inputs_batch = [batch_process_folder, batch_outputs_folder] + stage_2_common_inputs
+        batch_upscale_button.click(fn=batch_upscale, inputs=stage2_inputs_batch, outputs=batch_output_label, show_progress=True,
                                    queue=True)
     interface.launch(**launch_kwargs)
 
