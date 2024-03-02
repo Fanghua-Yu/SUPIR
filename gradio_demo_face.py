@@ -13,6 +13,8 @@ from CKPT_PTH import LLAVA_MODEL_PATH
 import einops
 import copy
 import time
+from omegaconf import OmegaConf
+from SUPIR.utils.face_restoration_helper import FaceRestoreHelper
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--ip", type=str, default='127.0.0.1')
@@ -22,9 +24,8 @@ parser.add_argument("--use_image_slider", action='store_true', default=False)
 parser.add_argument("--log_history", action='store_true', default=False)
 parser.add_argument("--loading_half_params", action='store_true', default=False)
 parser.add_argument("--use_tile_vae", action='store_true', default=False)
-parser.add_argument("--encoder_tile_size", type=int, default=512)
-parser.add_argument("--decoder_tile_size", type=int, default=64)
 parser.add_argument("--load_8bit_llava", action='store_true', default=False)
+parser.add_argument("--local_prompt", action='store_true', default=False)
 args = parser.parse_args()
 server_ip = args.ip
 server_port = args.port
@@ -40,7 +41,9 @@ else:
     raise ValueError('Currently support CUDA only.')
 
 # load SUPIR
-model = create_SUPIR_model('options/SUPIR_v0.yaml', SUPIR_sign='Q')
+config_path = 'options/SUPIR_v0.yaml'
+config = OmegaConf.load(config_path)
+model = create_SUPIR_model(config_path, SUPIR_sign='Q')
 if args.loading_half_params:
     model = model.half()
 if args.use_tile_vae:
@@ -56,6 +59,16 @@ if use_llava:
 else:
     llava_agent = None
 
+# load face helper
+face_helper = FaceRestoreHelper(
+        device=SUPIR_device,
+        upscale_factor=1,
+        face_size=1024,
+        use_parse=True,
+        det_model='retinaface_resnet50'
+    )
+
+# only exhibit the overall quality of the stage1 output
 def stage1_process(input_image, gamma_correction):
     torch.cuda.set_device(SUPIR_device)
     LQ = HWC3(input_image)
@@ -72,19 +85,42 @@ def stage1_process(input_image, gamma_correction):
     LQ = LQ.round().clip(0, 255).astype(np.uint8)
     return LQ
 
-def llave_process(input_image, temperature, top_p, qs=None):
+def llave_process(input_image, upscale, temperature, top_p, qs=None):
+    torch.cuda.set_device(SUPIR_device)
+    input_image = HWC3(input_image)
+    input_image = upscale_image(input_image, upscale, unit_resolution=32,
+                                min_size=1024)
+    LQ = np.array(input_image) / 255 * 2 - 1
+    LQ = torch.tensor(LQ, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).to(SUPIR_device)[:, :3, :, :]
+    LQ = model.batchify_denoise(LQ, is_stage1=True)
+
+    LQ = (LQ[0].permute(1, 2, 0) * 127.5 + 127.5).cpu().numpy().round().clip(0, 255).astype(np.uint8)
+    LQs = [Image.fromarray(LQ)]
+
+    face_helper.clean_all()
+    face_helper.read_image(LQ)
+    # get face landmarks for each face
+    face_helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)
+    face_helper.align_warp_face()
+
+    for face in face_helper.cropped_faces:
+        LQs.append(Image.fromarray(face))
+
+    captions = []
     torch.cuda.set_device(LLaVA_device)
     if use_llava:
-        LQ = HWC3(input_image)
-        LQ = Image.fromarray(LQ.astype('uint8'))
-        captions = llava_agent.gen_image_caption([LQ], temperature=temperature, top_p=top_p, qs=qs)
+        for LQ in LQs:
+            captions += llava_agent.gen_image_caption([LQ], temperature=temperature, top_p=top_p, qs=qs)
     else:
         captions = ['LLaVA is not available. Please add text manually.']
-    return captions[0]
+    del LQs[0]
+    return str(captions), [np.array(face) for face in LQs]
+
 
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select):
+                   linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select,
+                   face_resolution, apply_bg, apply_face):
     torch.cuda.set_device(SUPIR_device)
     event_id = str(time.time_ns())
     event_dict = {'event_id': event_id, 'localtime': time.ctime(), 'prompt': prompt, 'a_prompt': a_prompt,
@@ -108,29 +144,86 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     input_image = upscale_image(input_image, upscale, unit_resolution=32,
                                 min_size=1024)
 
-    LQ = np.array(input_image) / 255.0
-    LQ = np.power(LQ, gamma_correction)
-    LQ *= 255.0
-    LQ = LQ.round().clip(0, 255).astype(np.uint8)
+    LQ = np.array(input_image)
+    face_helper.clean_all()
+    face_helper.read_image(LQ)
+    # get face landmarks for each face
+    face_helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)
+    face_helper.align_warp_face()
+
     LQ = LQ / 255 * 2 - 1
     LQ = torch.tensor(LQ, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).to(SUPIR_device)[:, :3, :, :]
-    if use_llava:
-        captions = [prompt]
+
+    if use_llava and prompt != '':
+        captions = eval(prompt)
     else:
-        captions = ['']
+        captions = [''] * (1 + len(face_helper.cropped_faces))
+
+    bg_caption, face_captions = captions[0], captions[1:]
 
     model.ae_dtype = convert_dtype(ae_dtype)
     model.model.dtype = convert_dtype(diff_dtype)
 
-    samples = model.batchify_sample(LQ, captions, num_steps=edm_steps, restoration_scale=s_stage1, s_churn=s_churn,
-                                    s_noise=s_noise, cfg_scale=s_cfg, control_scale=s_stage2, seed=seed,
-                                    num_samples=num_samples, p_p=a_prompt, n_p=n_prompt, color_fix_type=color_fix_type,
-                                    use_linear_CFG=linear_CFG, use_linear_control_scale=linear_s_stage2,
-                                    cfg_scale_start=spt_linear_CFG, control_scale_start=spt_linear_s_stage2)
+    _faces = []
+    if apply_face:
+        faces = []
+        for face in face_helper.cropped_faces:
+            _faces.append(face)
+            face = np.array(face) / 255 * 2 - 1
+            face = torch.tensor(face, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).to(SUPIR_device)[:, :3, :, :]
+            faces.append(face)
 
-    x_samples = (einops.rearrange(samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().round().clip(
-        0, 255).astype(np.uint8)
-    results = [x_samples[i] for i in range(num_samples)]
+        for face, caption in zip(faces, face_captions):
+            caption = [caption]
+
+            from torch.nn.functional import interpolate
+            face = interpolate(face, size=face_resolution, mode='bilinear', align_corners=False)
+            if face_resolution < 1024:
+                face = torch.nn.functional.pad(face, (512-face_resolution//2, 512-face_resolution//2,
+                                                      512-face_resolution//2, 512-face_resolution//2), 'constant', 0)
+
+            samples = model.batchify_sample(face, caption, num_steps=edm_steps, restoration_scale=s_stage1, s_churn=s_churn,
+                                            s_noise=s_noise, cfg_scale=s_cfg, control_scale=s_stage2, seed=seed,
+                                            num_samples=num_samples, p_p=a_prompt, n_p=n_prompt, color_fix_type=color_fix_type,
+                                            use_linear_CFG=linear_CFG, use_linear_control_scale=linear_s_stage2,
+                                            cfg_scale_start=spt_linear_CFG, control_scale_start=spt_linear_s_stage2)
+            if face_resolution < 1024:
+                samples = samples[:, :, 512-face_resolution//2:512+face_resolution//2,
+                          512-face_resolution//2:512+face_resolution//2]
+            samples = interpolate(samples, size=face_helper.face_size, mode='bilinear', align_corners=False)
+            x_samples = (einops.rearrange(samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().round().clip(
+                0, 255).astype(np.uint8)
+
+            face_helper.add_restored_face(x_samples[0])
+            _faces.append(x_samples[0])
+
+        if apply_bg:
+            caption = [bg_caption]
+            samples = model.batchify_sample(LQ, caption, num_steps=edm_steps, restoration_scale=s_stage1,
+                                            s_churn=s_churn,
+                                            s_noise=s_noise, cfg_scale=s_cfg, control_scale=s_stage2, seed=seed,
+                                            num_samples=num_samples, p_p=a_prompt, n_p=n_prompt,
+                                            color_fix_type=color_fix_type,
+                                            use_linear_CFG=linear_CFG, use_linear_control_scale=linear_s_stage2,
+                                            cfg_scale_start=spt_linear_CFG, control_scale_start=spt_linear_s_stage2)
+        else:
+            samples = LQ
+        _bg = (einops.rearrange(samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().round().clip(
+            0, 255).astype(np.uint8)
+        face_helper.get_inverse_affine(None)
+        results = [face_helper.paste_faces_to_input_image(upsample_img=_bg[0])]
+    else:
+        caption = [bg_caption]
+        samples = model.batchify_sample(LQ, caption, num_steps=edm_steps, restoration_scale=s_stage1,
+                                        s_churn=s_churn,
+                                        s_noise=s_noise, cfg_scale=s_cfg, control_scale=s_stage2, seed=seed,
+                                        num_samples=num_samples, p_p=a_prompt, n_p=n_prompt,
+                                        color_fix_type=color_fix_type,
+                                        use_linear_CFG=linear_CFG, use_linear_control_scale=linear_s_stage2,
+                                        cfg_scale_start=spt_linear_CFG, control_scale_start=spt_linear_s_stage2)
+        x_samples = (einops.rearrange(samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().round().clip(
+            0, 255).astype(np.uint8)
+        results = [x_samples[0]]
 
     if args.log_history:
         os.makedirs(f'./history/{event_id[:5]}/{event_id[5:]}', exist_ok=True)
@@ -140,8 +233,7 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
         Image.fromarray(input_image).save(f'./history/{event_id[:5]}/{event_id[5:]}/LQ.png')
         for i, result in enumerate(results):
             Image.fromarray(result).save(f'./history/{event_id[:5]}/{event_id[5:]}/HQ_{i}.png')
-    return [input_image] + results, event_id, 3, ''
-
+    return [input_image] + results, event_id, 3, '', _faces
 
 def load_and_reset(param_setting):
     edm_steps = 50
@@ -183,7 +275,6 @@ def submit_feedback(event_id, fb_score, fb_text):
         return 'Submit successfully, thank you for your comments!'
     else:
         return 'Submit failed, the server is not set to log history.'
-
 
 title_md = """
 # **SUPIR: Practicing Model Scaling for Photo-Realistic Image Restoration**
@@ -289,22 +380,30 @@ with block:
                                                value="Quality")
                 with gr.Column():
                     restart_button = gr.Button(value="Reset Param", scale=2)
-            with gr.Accordion("Feedback", open=True):
+            with gr.Accordion("Face Options", open=True):
+                face_resolution = gr.Slider(label="Text Guidance Scale", minimum=256, maximum=2048, value=1024, step=32)
+                with gr.Row():
+                    with gr.Column():
+                        apply_bg = gr.Checkbox(label="BG restoration", value=True)
+                    with gr.Column():
+                        apply_face = gr.Checkbox(label="Face restoration", value=True)
+            with gr.Accordion("Feedback", open=False):
                 fb_score = gr.Slider(label="Feedback Score", minimum=1, maximum=5, value=3, step=1,
                                      interactive=True)
                 fb_text = gr.Textbox(label="Feedback Text", value="", placeholder='Please enter your feedback here.')
                 submit_button = gr.Button(value="Submit Feedback")
+            face_gallery = gr.Gallery(label='Faces', show_label=False, elem_id="gallery2")
     with gr.Row():
         gr.Markdown(claim_md)
         event_id = gr.Textbox(label="Event ID", value="", visible=False)
 
-    llave_button.click(fn=llave_process, inputs=[denoise_image, temperature, top_p, qs], outputs=[prompt])
+    llave_button.click(fn=llave_process, inputs=[input_image, upscale, temperature, top_p, qs], outputs=[prompt, face_gallery])
     denoise_button.click(fn=stage1_process, inputs=[input_image, gamma_correction],
                          outputs=[denoise_image])
     stage2_ips = [input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                   s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
-                  linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select]
-    diffusion_button.click(fn=stage2_process, inputs=stage2_ips, outputs=[result_gallery, event_id, fb_score, fb_text])
+                  linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, face_resolution, apply_bg, apply_face]
+    diffusion_button.click(fn=stage2_process, inputs=stage2_ips, outputs=[result_gallery, event_id, fb_score, fb_text, face_gallery])
     restart_button.click(fn=load_and_reset, inputs=[param_setting],
                          outputs=[edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt,
                                   color_fix_type, linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2])
