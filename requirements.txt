@@ -37,3 +37,4 @@ triton==2.1.0
 urllib3==1.26.15
 webdataset==0.2.48
 xformers>=0.0.20
+facexlib==0.3.0
