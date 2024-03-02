@@ -1,10 +1,9 @@
 import os
-from pickle import TRUE
 
 import gradio as gr
 from gradio_imageslider import ImageSlider
 import argparse
-from SUPIR.util import HWC3, upscale_image, fix_resize, convert_dtype, Tensor2PIL
+from SUPIR.util import HWC3, upscale_image, fix_resize, convert_dtype
 import numpy as np
 import torch
 from SUPIR.util import create_SUPIR_model, load_QF_ckpt
