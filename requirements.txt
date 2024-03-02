@@ -31,7 +31,8 @@ scipy==1.9.1
 tqdm==4.65.0
 urllib3==1.26.15
 webdataset==0.2.48
-xformers
+xformers>=0.0.20
+facexlib==0.3.0
 fastapi
 diffusers
 bitsandbytes

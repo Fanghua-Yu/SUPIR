@@ -123,7 +123,10 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     LQ = LQ.round().clip(0, 255).astype(np.uint8)
     LQ = LQ / 255 * 2 - 1
     LQ = torch.tensor(LQ, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).to(SUPIR_device)[:, :3, :, :]
-    captions = [prompt]
+    if use_llava:
+        captions = [prompt]
+    else:
+        captions = ['']
 
     model.ae_dtype = convert_dtype(ae_dtype)
     model.model.dtype = convert_dtype(diff_dtype)
@@ -180,6 +183,7 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     return [input_image] + all_results, event_id, 3, '', seed
 
 
+
 def load_and_reset(param_setting):
     edm_steps = 50
     s_stage2 = 1.0
@@ -193,15 +197,15 @@ def load_and_reset(param_setting):
                '3D render, unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, ' \
                'signature, jpeg artifacts, deformed, lowres, over-smooth'
     color_fix_type = 'Wavelet'
-    spt_linear_CFG = 1.0
     spt_linear_s_stage2 = 0.0
     linear_s_stage2 = False
+    linear_CFG = True
     if param_setting == "Quality":
         s_cfg = 7.5
-        linear_CFG = False
+        spt_linear_CFG = 4.0
     elif param_setting == "Fidelity":
         s_cfg = 4.0
-        linear_CFG = True
+        spt_linear_CFG = 1.0
     else:
         raise NotImplementedError
     return edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt, color_fix_type, linear_CFG, \
@@ -326,9 +330,9 @@ def launch_ui(launch_kwargs):
                         restart_button = gr.Button(value="Reset Param", scale=2)
                 with gr.Row():
                     with gr.Column():
-                        linear_CFG = gr.Checkbox(label="Linear CFG", value=False)
+                        linear_CFG = gr.Checkbox(label="Linear CFG", value=True)
                         spt_linear_CFG = gr.Slider(label="CFG Start", minimum=1.0,
-                                                   maximum=9.0, value=1.0, step=0.5)
+                                                   maximum=9.0, value=4.0, step=0.5)
                     with gr.Column():
                         linear_s_stage2 = gr.Checkbox(label="Linear Stage2 Guidance", value=False)
                         spt_linear_s_stage2 = gr.Slider(label="Guidance Start", minimum=0.,

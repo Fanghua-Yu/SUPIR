@@ -1,0 +1,158 @@
+model:
+  target: SUPIR.models.SUPIR_model.SUPIRModel
+  params:
+    ae_dtype: bf16
+    diffusion_dtype: fp16
+    scale_factor: 0.13025
+    disable_first_stage_autocast: True
+    network_wrapper: sgm.modules.diffusionmodules.wrappers.ControlWrapper
+
+    denoiser_config:
+      target: sgm.modules.diffusionmodules.denoiser.DiscreteDenoiserWithControl
+      params:
+        num_idx: 1000
+        weighting_config:
+          target: sgm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
+        scaling_config:
+          target: sgm.modules.diffusionmodules.denoiser_scaling.EpsScaling
+        discretization_config:
+          target: sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
+
+    control_stage_config:
+      target: SUPIR.modules.SUPIR_v0.GLVControl
+      params:
+        adm_in_channels: 2816
+        num_classes: sequential
+        use_checkpoint: True
+        in_channels: 4
+        out_channels: 4
+        model_channels: 320
+        attention_resolutions: [4, 2]
+        num_res_blocks: 2
+        channel_mult: [1, 2, 4]
+        num_head_channels: 64
+        use_spatial_transformer: True
+        use_linear_in_transformer: True
+        transformer_depth: [1, 2, 10]  # note: the first is unused (due to attn_res starting at 2) 32, 16, 8 --> 64, 32, 16
+#        transformer_depth: [1, 1, 4]
+        context_dim: 2048
+        spatial_transformer_attn_type: softmax-xformers
+        legacy: False
+        input_upscale: 1
+
+    network_config:
+      target: SUPIR.modules.SUPIR_v0.LightGLVUNet
+      params:
+        mode: XL-base
+        project_type: ZeroSFT
+        project_channel_scale: 2
+        adm_in_channels: 2816
+        num_classes: sequential
+        use_checkpoint: True
+        in_channels: 4
+        out_channels: 4
+        model_channels: 320
+        attention_resolutions: [4, 2]
+        num_res_blocks: 2
+        channel_mult: [1, 2, 4]
+        num_head_channels: 64
+        use_spatial_transformer: True
+        use_linear_in_transformer: True
+        transformer_depth: [1, 2, 10]  # note: the first is unused (due to attn_res starting at 2) 32, 16, 8 --> 64, 32, 16
+        context_dim: 2048
+        spatial_transformer_attn_type: softmax-xformers
+        legacy: False
+
+    conditioner_config:
+      target: sgm.modules.GeneralConditionerWithControl
+      params:
+        emb_models:
+          # crossattn cond
+          - is_trainable: False
+            input_key: txt
+            target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
+            params:
+              layer: hidden
+              layer_idx: 11
+          # crossattn and vector cond
+          - is_trainable: False
+            input_key: txt
+            target: sgm.modules.encoders.modules.FrozenOpenCLIPEmbedder2
+            params:
+              arch: ViT-bigG-14
+              version: laion2b_s39b_b160k
+              freeze: True
+              layer: penultimate
+              always_return_pooled: True
+              legacy: False
+          # vector cond
+          - is_trainable: False
+            input_key: original_size_as_tuple
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+            params:
+              outdim: 256  # multiplied by two
+          # vector cond
+          - is_trainable: False
+            input_key: crop_coords_top_left
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+            params:
+              outdim: 256  # multiplied by two
+          # vector cond
+          - is_trainable: False
+            input_key: target_size_as_tuple
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+            params:
+              outdim: 256  # multiplied by two
+
+    first_stage_config:
+      target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
+      params:
+        ckpt_path: ~
+        embed_dim: 4
+        monitor: val/rec_loss
+        ddconfig:
+          attn_type: vanilla-xformers
+          double_z: true
+          z_channels: 4
+          resolution: 256
+          in_channels: 3
+          out_ch: 3
+          ch: 128
+          ch_mult: [ 1, 2, 4, 4 ]
+          num_res_blocks: 2
+          attn_resolutions: [ ]
+          dropout: 0.0
+        lossconfig:
+          target: torch.nn.Identity
+
+    sampler_config:
+      target: sgm.modules.diffusionmodules.sampling.TiledRestoreEDMSampler
+      params:
+        num_steps: 100
+        restore_cfg: 4.0
+        s_churn: 0
+        s_noise: 1.003
+        tile_size: 128
+        tile_stride: 64
+        discretization_config:
+          target: sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
+        guider_config:
+          target: sgm.modules.diffusionmodules.guiders.LinearCFG
+          params:
+            scale: 7.5
+            scale_min: 4.0
+
+    p_p:
+        'Cinematic, High Contrast, highly detailed, taken using a Canon EOS R camera, 
+             hyper detailed photo - realistic maximum detail, 32k, Color Grading, ultra HD, extreme meticulous detailing, 
+             skin pore detailing, hyper sharpness, perfect without deformations.'
+    n_p:
+        'painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, 
+        unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, 
+        jpeg artifacts, deformed, lowres, over-smooth'
+
+SDXL_CKPT: /opt/data/private/AIGC_pretrain/SDXL_cache/sd_xl_base_1.0_0.9vae.safetensors
+SUPIR_CKPT_F: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0F.ckpt
+SUPIR_CKPT_Q: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0Q.ckpt
+SUPIR_CKPT: ~
+
