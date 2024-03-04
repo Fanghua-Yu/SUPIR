@@ -81,7 +81,7 @@ def batch_upscale(batch_process_folder, outputs_folder, prompt, a_prompt, n_prom
             stage2_process(img_array, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                            s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
                            linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
-                           random_seed, dont_update_progress=True, outputs_folder=outputs_folder)
+                           random_seed, dont_update_progress=True, outputs_folder=outputs_folder, file_name=base_name)
 
             # Update progress
         except Exception as e:
@@ -93,7 +93,8 @@ def batch_upscale(batch_process_folder, outputs_folder, prompt, a_prompt, n_prom
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
                    linear_CFG, linear_s_stage2, spt_linear_CFG, spt_linear_s_stage2, model_select, num_images,
-                   random_seed, dont_update_progress=False, outputs_folder="outputs", progress=gr.Progress()):
+                   random_seed, dont_update_progress=False, outputs_folder="outputs", file_name=None,
+                   progress=gr.Progress()):
     torch.cuda.set_device(SUPIR_device)
 
     event_id = str(time.time_ns())
@@ -145,7 +146,7 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
     counter = 1
     if not dont_update_progress:
         progress(0 / num_images, desc="Generating images")
-    for _ in range(num_images):
+    for img_num in range(num_images):
         if random_seed or num_images > 1:
             seed = np.random.randint(0, 2147483647)
         start_time = time.time()  # Track the start time
@@ -167,9 +168,17 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
         print(desc)  # Print the progress
 
         for i, result in enumerate(results):
-            timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
-            save_path = os.path.join(output_dir, f'{timestamp}.png')
-            Image.fromarray(result).save(save_path)
+            if file_name:
+                if num_images == 1:
+                    output_filename = f'{file_name}_upscaled.png'
+                else:
+                    img_index = img_num + 1
+                    output_filename = f'{file_name}_upscaled_{img_index}.png'
+            else:
+                timestamp = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
+                output_filename = f'{timestamp}.png'
+
+            Image.fromarray(result).save(os.path.join(output_dir, output_filename))
         all_results.extend(results)
 
     if args.log_history:
@@ -181,7 +190,6 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
         for i, result in enumerate(all_results):
             Image.fromarray(result).save(f'./history/{event_id[:5]}/{event_id[5:]}/HQ_{i}.png')
     return [input_image] + all_results, event_id, 3, '', seed
-
 
 
 def load_and_reset(param_setting):
