@@ -44,7 +44,7 @@ model = create_SUPIR_model('options/SUPIR_v0.yaml', SUPIR_sign='Q')
 if args.loading_half_params:
     model = model.half()
 if args.use_tile_vae:
-    model.init_tile_vae(encoder_tile_size=512, decoder_tile_size=64)
+    model.init_tile_vae(encoder_tile_size=args.encoder_tile_size, decoder_tile_size=args.decoder_tile_size)
 model = model.to(SUPIR_device)
 model.first_stage_model.denoise_encoder_s1 = copy.deepcopy(model.first_stage_model.denoise_encoder)
 model.current_model = 'v0-Q'
