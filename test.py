@@ -42,9 +42,9 @@ parser.add_argument("--n_prompt", type=str,
                             'worst quality, low quality, frames, watermark, signature, jpeg artifacts, '
                             'deformed, lowres, over-smooth')
 parser.add_argument("--color_fix_type", type=str, default='Wavelet', choices=["None", "AdaIn", "Wavelet"])
-parser.add_argument("--linear_CFG", action='store_true', default=False)
+parser.add_argument("--linear_CFG", action='store_true', default=True)
 parser.add_argument("--linear_s_stage2", action='store_true', default=False)
-parser.add_argument("--spt_linear_CFG", type=float, default=1.0)
+parser.add_argument("--spt_linear_CFG", type=float, default=4.0)
 parser.add_argument("--spt_linear_s_stage2", type=float, default=0.)
 parser.add_argument("--ae_dtype", type=str, default="bf16", choices=['fp32', 'bf16'])
 parser.add_argument("--diff_dtype", type=str, default="fp16", choices=['fp32', 'fp16', 'bf16'])
