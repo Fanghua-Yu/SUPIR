@@ -54,7 +54,7 @@ def load_QF_ckpt(config_path):
     return ckpt_Q, ckpt_F
 
 
-def PIL2Tensor(img, upsacle=1, min_size=1024):
+def PIL2Tensor(img, upsacle=1, min_size=1024, fix_resize=None):
     '''
     PIL.Image -> Tensor[C, H, W], RGB, [-1, 1]
     '''
@@ -67,8 +67,11 @@ def PIL2Tensor(img, upsacle=1, min_size=1024):
         _upsacle = min_size / min(w, h)
         w *= _upsacle
         h *= _upsacle
-    else:
-        _upsacle = 1
+    if fix_resize is not None:
+        _upsacle = fix_resize / min(w, h)
+        w *= _upsacle
+        h *= _upsacle
+        w0, h0 = round(w), round(h)
     w = int(np.round(w / 64.0)) * 64
     h = int(np.round(h / 64.0)) * 64
     x = img.resize((w, h), Image.BICUBIC)
