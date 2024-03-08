@@ -31,7 +31,7 @@ def create_model(config_path):
     return model
 
 
-def create_SUPIR_model(config_path, SUPIR_sign=None):
+def create_SUPIR_model(config_path, SUPIR_sign=None, load_default_setting=False):
     config = OmegaConf.load(config_path)
     model = instantiate_from_config(config.model).cpu()
     print(f'Loaded model config from [{config_path}]')
@@ -45,6 +45,9 @@ def create_SUPIR_model(config_path, SUPIR_sign=None):
             model.load_state_dict(load_state_dict(config.SUPIR_CKPT_F), strict=False)
         elif SUPIR_sign == 'Q':
             model.load_state_dict(load_state_dict(config.SUPIR_CKPT_Q), strict=False)
+    if load_default_setting:
+        default_setting = config.default_setting
+        return model, default_setting
     return model
 
 def load_QF_ckpt(config_path):

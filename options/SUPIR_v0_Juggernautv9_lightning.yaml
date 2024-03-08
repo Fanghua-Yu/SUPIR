@@ -126,7 +126,7 @@ model:
           target: torch.nn.Identity
 
     sampler_config:
-      target: sgm.modules.diffusionmodules.sampling.RestoreEDMSampler
+      target: sgm.modules.diffusionmodules.sampling.RestoreDPMPP2MSampler
       params:
         num_steps: 100
         restore_cfg: 4.0
@@ -149,14 +149,14 @@ model:
         unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, 
         jpeg artifacts, deformed, lowres, over-smooth'
 
-SDXL_CKPT: /opt/data/private/AIGC_pretrain/SDXL_cache/sd_xl_base_1.0_0.9vae.safetensors
+SDXL_CKPT: /opt/data/private/AIGC_pretrain/SDXL_lightning_cache/Juggernaut_RunDiffusionPhoto2_Lightning_4Steps.safetensors
 SUPIR_CKPT_F: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0F.ckpt
 SUPIR_CKPT_Q: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0Q.ckpt
 SUPIR_CKPT: ~
 
 default_setting:
-  s_cfg_Quality: 7.5
-  spt_linear_CFG_Quality: 4.0
-  s_cfg_Fidelity: 4.0
-  spt_linear_CFG_Fidelity: 1.0
-  edm_steps: 50
+  s_cfg_Quality: 2.0
+  spt_linear_CFG_Quality: 2.0
+  s_cfg_Fidelity: 1.5
+  spt_linear_CFG_Fidelity: 1.5
+  edm_steps: 8
