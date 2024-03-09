@@ -193,7 +193,7 @@ def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale
 
 
 def load_and_reset(param_setting):
-    edm_steps = 50
+    edm_steps = default_setting.edm_steps
     s_stage2 = 1.0
     s_stage1 = -1.0
     s_churn = 5
@@ -209,11 +209,11 @@ def load_and_reset(param_setting):
     linear_s_stage2 = False
     linear_CFG = True
     if param_setting == "Quality":
-        s_cfg = 7.5
-        spt_linear_CFG = 4.0
+        s_cfg = default_setting.s_cfg_Quality
+        spt_linear_CFG = default_setting.spt_linear_CFG_Quality
     elif param_setting == "Fidelity":
-        s_cfg = 4.0
-        spt_linear_CFG = 1.0
+        s_cfg = default_setting.s_cfg_Fidelity
+        spt_linear_CFG = default_setting.spt_linear_CFG_Fidelity
     else:
         raise NotImplementedError
     return edm_steps, s_cfg, s_stage2, s_stage1, s_churn, s_noise, a_prompt, n_prompt, color_fix_type, linear_CFG, \
@@ -282,8 +282,9 @@ def launch_ui(launch_kwargs):
                             upscale = gr.Slider(label="Upscale", minimum=1, maximum=8, value=1, step=0.1)
                             random_seed = gr.Checkbox(label="Randomize Seed", value=True)
                     with gr.Row():
-                        edm_steps = gr.Slider(label="Steps", minimum=20, maximum=200, value=50, step=1)
-                        s_cfg = gr.Slider(label="Text Guidance Scale", minimum=1.0, maximum=15.0, value=7.5, step=0.1)
+                        edm_steps = gr.Slider(label="Steps", minimum=1, maximum=200, value=default_setting.edm_steps, step=1)
+                        s_cfg = gr.Slider(label="Text Guidance Scale", minimum=1.0, maximum=15.0,
+                                          value=default_setting.s_cfg_Quality, step=0.1)
                         s_stage2 = gr.Slider(label="Stage2 Guidance Strength", minimum=0., maximum=1., value=1., step=0.05)
                         s_stage1 = gr.Slider(label="Stage1 Guidance Strength", minimum=-1.0, maximum=6.0, value=-1.0,
                                              step=1.0)
@@ -340,7 +341,7 @@ def launch_ui(launch_kwargs):
                     with gr.Column():
                         linear_CFG = gr.Checkbox(label="Linear CFG", value=True)
                         spt_linear_CFG = gr.Slider(label="CFG Start", minimum=1.0,
-                                                   maximum=9.0, value=4.0, step=0.5)
+                                                   maximum=9.0, value=default_setting.spt_linear_CFG_Quality, step=0.5)
                     with gr.Column():
                         linear_s_stage2 = gr.Checkbox(label="Linear Stage2 Guidance", value=False)
                         spt_linear_s_stage2 = gr.Slider(label="Guidance Start", minimum=0.,
@@ -395,6 +396,7 @@ def launch_ui(launch_kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--opt", type=str, default='options/SUPIR_v0.yaml')
     parser.add_argument("--ip", type=str, default='127.0.0.1')
     parser.add_argument("--share", type=str, default=False)
     parser.add_argument("--port", type=int, default=7860)
@@ -421,7 +423,7 @@ if __name__ == "__main__":
         raise ValueError('Only CUDA is currently supported.')
 
     # load SUPIR
-    model = create_SUPIR_model('options/SUPIR_v0.yaml', SUPIR_sign='Q')
+    model, default_setting = create_SUPIR_model(args.opt, SUPIR_sign='Q', load_default_setting=True)
     if args.loading_half_params:
         model = model.half()
     if args.use_tile_vae:
@@ -429,7 +431,7 @@ if __name__ == "__main__":
     model = model.to(SUPIR_device)
     model.first_stage_model.denoise_encoder_s1 = copy.deepcopy(model.first_stage_model.denoise_encoder)
     model.current_model = 'v0-Q'
-    ckpt_Q, ckpt_F = load_QF_ckpt('options/SUPIR_v0.yaml')
+    ckpt_Q, ckpt_F = load_QF_ckpt(args.opt)
 
     # load LLaVA
     if use_llava:

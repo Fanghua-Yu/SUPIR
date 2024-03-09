@@ -17,6 +17,7 @@ from ...modules.diffusionmodules.sampling_utils import (
     to_sigma,
 )
 from ...util import append_dims, default, instantiate_from_config
+from k_diffusion.sampling import get_sigmas_karras, BrownianTreeNoiseSampler
 
 DEFAULT_GUIDER = {"target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"}
 
@@ -367,6 +368,153 @@ class DPMPP2MSampler(BaseDiffusionSampler):
         return x
 
 
+class SubstepSampler(EulerAncestralSampler):
+    def __init__(self, s_churn=0.0, s_tmin=0.0, s_tmax=float("inf"), s_noise=1.0, restore_cfg=4.0,
+            restore_cfg_s_tmin=0.05, eta=1., n_sample_steps=4, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.n_sample_steps = n_sample_steps
+        self.steps_subset = [0, 100, 200, 300, 1000]
+
+    def prepare_sampling_loop(self, x, cond, uc=None, num_steps=None):
+        sigmas = self.discretization(1000, device=self.device)
+        sigmas = sigmas[
+            self.steps_subset[: self.num_steps] + self.steps_subset[-1:]
+        ]
+        print(sigmas)
+        # uc = cond
+        x *= torch.sqrt(1.0 + sigmas[0] ** 2.0)
+        num_sigmas = len(sigmas)
+        s_in = x.new_ones([x.shape[0]])
+        return x, s_in, sigmas, num_sigmas, cond, uc
+
+    def denoise(self, x, denoiser, sigma, cond, uc, control_scale=1.0):
+        denoised = denoiser(*self.guider.prepare_inputs(x, sigma, cond, uc), control_scale)
+        denoised = self.guider(denoised, sigma)
+        return denoised
+
+    def __call__(self, denoiser, x, cond, uc=None, num_steps=None, control_scale=1.0, *args, **kwargs):
+        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            x, cond, uc, num_steps
+        )
+
+        for i in self.get_sigma_gen(num_sigmas):
+            x = self.sampler_step(
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                x,
+                cond,
+                uc,
+                control_scale=control_scale,
+            )
+
+        return x
+
+    def sampler_step(self, sigma, next_sigma, denoiser, x, cond, uc, control_scale=1.0):
+        sigma_down, sigma_up = get_ancestral_step(sigma, next_sigma, eta=self.eta)
+        denoised = self.denoise(x, denoiser, sigma, cond, uc, control_scale=control_scale)
+        x = self.ancestral_euler_step(x, denoised, sigma, sigma_down)
+        x = self.ancestral_step(x, sigma, next_sigma, sigma_up)
+
+        return x
+
+
+class RestoreDPMPP2MSampler(DPMPP2MSampler):
+    def __init__(self, s_churn=0.0, s_tmin=0.0, s_tmax=float("inf"), s_noise=1.0, restore_cfg=4.0,
+            restore_cfg_s_tmin=0.05, eta=1., *args, **kwargs):
+        self.s_noise = s_noise
+        self.eta = eta
+        super().__init__(*args, **kwargs)
+
+    def denoise(self, x, denoiser, sigma, cond, uc, control_scale=1.0):
+        denoised = denoiser(*self.guider.prepare_inputs(x, sigma, cond, uc), control_scale)
+        denoised = self.guider(denoised, sigma)
+        return denoised
+
+    def get_mult(self, h, r, t, t_next, previous_sigma):
+        eta_h = self.eta * h
+        mult1 = to_sigma(t_next) / to_sigma(t) * (-eta_h).exp()
+        mult2 = (-h -eta_h).expm1()
+
+        if previous_sigma is not None:
+            mult3 = 1 + 1 / (2 * r)
+            mult4 = 1 / (2 * r)
+            return mult1, mult2, mult3, mult4
+        else:
+            return mult1, mult2
+
+
+    def sampler_step(
+        self,
+        old_denoised,
+        previous_sigma,
+        sigma,
+        next_sigma,
+        denoiser,
+        x,
+        cond,
+        uc=None,
+        eps_noise=None,
+        control_scale=1.0,
+    ):
+        denoised = self.denoise(x, denoiser, sigma, cond, uc, control_scale=control_scale)
+
+        h, r, t, t_next = self.get_variables(sigma, next_sigma, previous_sigma)
+        eta_h = self.eta * h
+        mult = [
+            append_dims(mult, x.ndim)
+            for mult in self.get_mult(h, r, t, t_next, previous_sigma)
+        ]
+
+        x_standard = mult[0] * x - mult[1] * denoised
+        if old_denoised is None or torch.sum(next_sigma) < 1e-14:
+            # Save a network evaluation if all noise levels are 0 or on the first step
+            return x_standard, denoised
+        else:
+            denoised_d = mult[2] * denoised - mult[3] * old_denoised
+            x_advanced = mult[0] * x - mult[1] * denoised_d
+
+            # apply correction if noise level is not 0 and not first step
+            x = torch.where(
+                append_dims(next_sigma, x.ndim) > 0.0, x_advanced, x_standard
+            )
+            if self.eta:
+                x = x + eps_noise * next_sigma * (-2 * eta_h).expm1().neg().sqrt() * self.s_noise
+
+        return x, denoised
+
+    def __call__(self, denoiser, x, cond, uc=None, num_steps=None, control_scale=1.0, **kwargs):
+        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            x, cond, uc, num_steps
+        )
+        sigmas_min, sigmas_max = sigmas[-2].cpu(), sigmas[0].cpu()
+        sigmas_new = get_sigmas_karras(self.num_steps, sigmas_min, sigmas_max, device=x.device)
+        sigmas = sigmas_new
+
+        noise_sampler = BrownianTreeNoiseSampler(x, sigmas_min, sigmas_max)
+
+        old_denoised = None
+        for i in self.get_sigma_gen(num_sigmas):
+            if i > 0 and torch.sum(s_in * sigmas[i + 1]) > 1e-14:
+                eps_noise = noise_sampler(s_in * sigmas[i], s_in * sigmas[i + 1])
+            else:
+                eps_noise = None
+            x, old_denoised = self.sampler_step(
+                old_denoised,
+                None if i == 0 else s_in * sigmas[i - 1],
+                s_in * sigmas[i],
+                s_in * sigmas[i + 1],
+                denoiser,
+                x,
+                cond,
+                uc=uc,
+                eps_noise=eps_noise,
+                control_scale=control_scale,
+            )
+
+        return x
+
+
 def to_d_center(denoised, x_center, x):
     b = denoised.shape[0]
     v_center = (denoised - x_center).view(b, -1)
@@ -509,6 +657,76 @@ class TiledRestoreEDMSampler(RestoreEDMSampler):
                 count[:, :, hi:hi_end, wi:wi_end] += tile_weights
             x_next /= count
             x = x_next
+        return x
+
+
+class TiledRestoreDPMPP2MSampler(RestoreDPMPP2MSampler):
+    def __init__(self, tile_size=128, tile_stride=64, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tile_size = tile_size
+        self.tile_stride = tile_stride
+        self.tile_weights = gaussian_weights(self.tile_size, self.tile_size, 1)
+
+    def __call__(self, denoiser, x, cond, uc=None, num_steps=None, control_scale=1.0, **kwargs):
+        use_local_prompt = isinstance(cond, list)
+        b, _, h, w = x.shape
+        latent_tiles_iterator = _sliding_windows(h, w, self.tile_size, self.tile_stride)
+        tile_weights = self.tile_weights.repeat(b, 1, 1, 1)
+        if not use_local_prompt:
+            LQ_latent = cond['control']
+        else:
+            assert len(cond) == len(latent_tiles_iterator), "Number of local prompts should be equal to number of tiles"
+            LQ_latent = cond[0]['control']
+        x, s_in, sigmas, num_sigmas, cond, uc = self.prepare_sampling_loop(
+            x, cond, uc, num_steps
+        )
+        sigmas_min, sigmas_max = sigmas[-2].cpu(), sigmas[0].cpu()
+        sigmas_new = get_sigmas_karras(self.num_steps, sigmas_min, sigmas_max, device=x.device)
+        sigmas = sigmas_new
+
+        noise_sampler = BrownianTreeNoiseSampler(x, sigmas_min, sigmas_max)
+
+        old_denoised = None
+        for _idx, i in enumerate(self.get_sigma_gen(num_sigmas)):
+            if i > 0 and torch.sum(s_in * sigmas[i + 1]) > 1e-14:
+                eps_noise = noise_sampler(s_in * sigmas[i], s_in * sigmas[i + 1])
+            else:
+                eps_noise = torch.zeros_like(x)
+            x_next = torch.zeros_like(x)
+            old_denoised_next = torch.zeros_like(x)
+            count = torch.zeros_like(x)
+            for j, (hi, hi_end, wi, wi_end) in enumerate(latent_tiles_iterator):
+                x_tile = x[:, :, hi:hi_end, wi:wi_end]
+                _eps_noise = eps_noise[:, :, hi:hi_end, wi:wi_end]
+                if old_denoised is not None:
+                    old_denoised_tile = old_denoised[:, :, hi:hi_end, wi:wi_end]
+                else:
+                    old_denoised_tile = None
+                if use_local_prompt:
+                    _cond = cond[j]
+                else:
+                    _cond = cond
+                _cond['control'] = LQ_latent[:, :, hi:hi_end, wi:wi_end]
+                uc['control'] = LQ_latent[:, :, hi:hi_end, wi:wi_end]
+                _x, _old_denoised = self.sampler_step(
+                    old_denoised_tile,
+                    None if i == 0 else s_in * sigmas[i - 1],
+                    s_in * sigmas[i],
+                    s_in * sigmas[i + 1],
+                    denoiser,
+                    x_tile,
+                    _cond,
+                    uc=uc,
+                    eps_noise=_eps_noise,
+                    control_scale=control_scale,
+                )
+                x_next[:, :, hi:hi_end, wi:wi_end] += _x * tile_weights
+                old_denoised_next[:, :, hi:hi_end, wi:wi_end] += _old_denoised * tile_weights
+                count[:, :, hi:hi_end, wi:wi_end] += tile_weights
+            old_denoised_next /= count
+            x_next /= count
+            x = x_next
+            old_denoised = old_denoised_next
         return x
 
 
