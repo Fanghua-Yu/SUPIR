@@ -1,0 +1,6 @@
+models
+__pycache__
+venv
+.idea
+.vs
+outputs
