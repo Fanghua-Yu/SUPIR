@@ -33,7 +33,7 @@ pytorch-lightning==2.1.2
 PyYAML==6.0
 scipy==1.9.1
 tqdm==4.65.0
-triton==2.1.0
+# triton==2.1.0
 urllib3==1.26.15
 webdataset==0.2.48
 xformers>=0.0.20
