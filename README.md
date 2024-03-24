@@ -27,6 +27,7 @@
     conda activate SUPIR
     pip install --upgrade pip
     pip install -r requirements.txt
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
     ```
 
 3. Download Checkpoints
