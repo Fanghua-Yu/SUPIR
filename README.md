@@ -23,7 +23,7 @@
 
 2. Install dependent packages
     ```bash
-    conda create -n SUPIR python=3.10 -y
+    conda create -n SUPIR python=3.8 -y
     conda activate SUPIR
     pip install --upgrade pip
     pip install -r requirements.txt
