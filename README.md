@@ -58,7 +58,12 @@ For users who can connect to huggingface, please setting `LLAVA_CLIP_PATH, SDXL_
 4. Edit Custom Path for Checkpoints
     ```
     * [CKPT_PTH.py] --> LLAVA_CLIP_PATH, LLAVA_MODEL_PATH, SDXL_CLIP1_PATH, SDXL_CLIP2_CACHE_DIR 
-    * [options/SUPIR_v0.yaml] --> SDXL_CKPT, SUPIR_CKPT_Q, SUPIR_CKPT_F
+    * [options/SUPIR_v0.yaml] --> SDXL_CKPT, SUPIR_CKPT_Q, SUPIR_CKPT_F    
+
+5. If running locally, you must edit /options/SUPIR_v0.yaml to point to the local locations of the model files.  Example syntax for WSK and Window is in SUPIR_v0.yaml
+
+6. 5. If running locally, you must also edit CKPT_PTH.py to point to the local locations of the model files.
+    
     ```
 ---
 
