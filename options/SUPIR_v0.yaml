@@ -148,7 +148,11 @@ model:
         'painting, oil painting, illustration, drawing, art, sketch, oil painting, cartoon, CG Style, 3D render, 
         unreal engine, blurring, dirty, messy, worst quality, low quality, frames, watermark, signature, 
         jpeg artifacts, deformed, lowres, over-smooth'
-
+#
+#  The 4 locations below need to be modified to point to the local locations of the models. 
+#  Under WSL, for examole, the syntax is: SDXL_CKPT: './opt/data/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors'
+#  Under Windows, the syntaz is: SDXL_CKPT: A:\SUPIR\opt\data\Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
+#
 SDXL_CKPT: /opt/data/private/AIGC_pretrain/SDXL_cache/sd_xl_base_1.0_0.9vae.safetensors
 SUPIR_CKPT_F: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0F.ckpt
 SUPIR_CKPT_Q: /opt/data/private/AIGC_pretrain/SUPIR_cache/SUPIR-v0Q.ckpt
