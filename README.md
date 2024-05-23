@@ -1,6 +1,6 @@
 ## (CVPR2024) Scaling Up to Excellence: Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild
 
-> [[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)] &emsp; [Online Demo (Coming soon)] <br>
+> [[Paper](https://arxiv.org/abs/2401.13627)] &emsp; [[Project Page](http://supir.xpixel.group/)] &emsp; [Online Demo](https://huggingface.co/spaces/Fabrice-TIERCELIN/SUPIR) <br>
 > Fanghua, Yu, [Jinjin Gu](https://www.jasongt.com/), Zheyuan Li, Jinfan Hu, Xiangtao Kong, [Xintao Wang](https://xinntao.github.io/), [Jingwen He](https://scholar.google.com.hk/citations?user=GUxrycUAAAAJ), [Yu Qiao](https://scholar.google.com.hk/citations?user=gFtI-8QAAAAJ), [Chao Dong](https://scholar.google.com.hk/citations?user=OSDCB0UAAAAJ) <br>
 > Shenzhen Institute of Advanced Technology; Shanghai AI Laboratory; University of Sydney; The Hong Kong Polytechnic University; ARC Lab, Tencent PCG; The Chinese University of Hong Kong <br>
 
@@ -10,7 +10,7 @@
 </p>
 
 ---
-#### ⚠ Due to the large RAM (60G) and VRAM (30G x2) costs of SUPIR, we are working on the online demo releasing.
+#### ⚠ Due to the large RAM (60G) and VRAM (30G x2) costs of SUPIR, the tool is also [available online](https://huggingface.co/spaces/Fabrice-TIERCELIN/SUPIR).
 
 ---
 ## 🔧 Dependencies and Installation
