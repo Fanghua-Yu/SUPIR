@@ -1,18 +1,72 @@
-License
+SUPIR Software License Agreement
 
-Copyright (c) 2024 XPixel Group, Especially the author team of SUPIR.
+Copyright (c) 2024 by SupPixel Pty Ltd and Shenzhen Mingxi Technology Co., Ltd. All rights reserved.
 
-The SUPIR ("Software") is made available for use, reproduction, and distribution strictly for non-commercial purposes. For the purposes of this declaration, "non-commercial" is defined as not primarily intended for or directed towards commercial advantage or monetary compensation.
+This work is jointly owned by SupPixel Pty Ltd, an Australian company (ACN 676 560 320), and Shenzhen Mingxi Technology Co., Ltd., a company incorporated under the laws of China. All rights reserved. The work is created by the author team of SUPIR at SupPixel Pty Ltd and Shenzhen Mingxi Technology Co., Ltd.
 
-By using, reproducing, or distributing the Software, you agree to abide by this restriction and not to use the Software for any commercial purposes without obtaining prior written permission from Dr. Jinjin Gu.
+This License Agreement ("Agreement") is made and entered into by and between SupPixel Pty Ltd and Shenzhen Mingxi Technology Co., Ltd. (collectively, the "Licensor") and any person or entity who accesses, uses, or distributes the SUPIR software (the "Licensee").
 
-This declaration does not in any way limit the rights under any open source license that may apply to the Software; it solely adds a condition that the Software shall not be used for commercial purposes.
+1. Definitions
 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+a. Licensed Software: Refers to the SUPIR software, including its source code, associated documentation, and any updates, upgrades, or modifications thereof. The Licensed Software includes both open-source components and proprietary components, as described herein.
 
-For inquiries or to obtain permission for commercial use, please contact Dr. Jinjin Gu (jinjin.gu@suppixel.ai).
+b. Neural Network Components: Includes the weights, biases, and architecture of the proprietary neural network(s) developed and trained by the Licensor. This excludes any pre-existing open-source neural networks used in conjunction with the Licensor's proprietary networks, for which the Licensor does not hold copyright.
 
+c. Commercial Use: Refers to any use of the Licensed Software or its components, in whole or in part, for the purpose of generating revenue, conducting business operations, or creating products or services for sale or profit. This includes, but is not limited to:
 
+- Deploying the software on a server to provide a service to users for a fee.
+- Using the software to process images that are intended for sale.
+- Integrating the software or its components into a commercial product that is sold to end-users.
+- Using the software to provide commercial consulting or contracting services, such as image analysis, enhancement, or modification for clients.
+- Using the software to process images that are subsequently used in training datasets for machine learning models or other types of data analysis. This includes datasets that are used internally, sold, or provided to third parties under a commercial agreement.
+- Licensing the software or its components to other businesses for commercial purposes.
 
+2. License Grant
 
+a. Open-Source Components: The Licensor grants the Licensee a non-exclusive, worldwide, royalty-free license to use, copy, modify, and distribute the source code of the open-source components of the Licensed Software, subject to the terms and conditions of their respective open-source licenses. The specific open-source licenses for each component are indicated in the source code files and documentation of the Licensed Software.
 
+b. Proprietary Neural Network Components: Notwithstanding the open-source license granted in Section 2(a) for open-source components, the Licensor retains all rights, title, and interest in and to the proprietary Neural Network Components developed and trained by the Licensor. The license granted herein does not include rights to use, copy, modify, distribute, or create derivative works of these proprietary Neural Network Components without obtaining express written permission from the Licensor.
+
+c. The source code of the Licensed Software is available as open-source on this GitHub repository. However, the open-source license does not grant any rights to the weights, biases, or architecture of the proprietary neural network(s) used in the Licensed Software, which remain the exclusive property of the Licensor.
+
+3. Commercial Use and Licensing
+
+a. The Licensor retains all ownership and commercial usage rights in the Licensed Software, including its neural network(s), regardless of the open-source availability of portions of the Licensed Software's source code. Under the open-source license, anyone may freely use, copy, modify, and distribute the source code of the Licensed Software for non-commercial purposes only. Similarly, the proprietary neural network weights, biases, and architecture may only be used for non-commercial purposes. Any commercial use, copying, modification, distribution, or creation of derivative works of the Licensed Software's source code or the proprietary neural network weights, biases, and architecture is strictly prohibited without express written permission from the Licensor.
+
+b. Any Commercial Use of the Licensed Software, including its source code and neural network(s), requires a separate commercial license agreement with the Licensor. The terms and conditions of such commercial licensing, including the scope of use, fees, and delivery of the relevant components, shall be negotiated and agreed upon between the Licensor and the Licensee in writing. For commercial licensing inquiries, please contact the Licensor at jinjin.gu@suppixel.ai.
+
+4. Intellectual Property Rights
+
+a. The Licensor retains all intellectual property rights in the Licensed Software, including copyrights, patents, trademarks, trade secrets, and any other proprietary rights. The Licensee acknowledges that the Licensor is the sole owner of the Licensed Software and its components, including the proprietary Neural Network Components.
+
+b. The Licensee agrees not to challenge or contest the Licensor's ownership or intellectual property rights in the Licensed Software, nor to assist or encourage any third party in doing so.
+
+c. The Licensee shall promptly notify the Licensor of any actual or suspected infringement of the Licensor's intellectual property rights in the Licensed Software by third parties, and shall provide reasonable assistance to the Licensor in enforcing its rights against such infringement.
+
+5. Warranty Disclaimer
+
+The Licensed Software is provided "as is", without warranty of any kind, either express or implied, including, but not limited to, the implied warranties of merchantability, fitness for a particular purpose, and non-infringement. The Licensor disclaims all warranties, express or implied, regarding the accuracy, reliability, completeness, or usefulness of the Licensed Software or its components. The Licensor does not warrant that the Licensed Software will be error-free, uninterrupted, or free from defects or vulnerabilities.
+
+6. Limitation of Liability
+
+In no event shall the Licensor be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the Licensed Software or the use or other dealings in the Licensed Software. The Licensor shall not be liable for any direct, indirect, incidental, special, consequential, or exemplary damages, including but not limited to damages for loss of profits, goodwill, use, data, or other intangible losses, even if the Licensor has been advised of the possibility of such damages.
+
+7. Indemnification
+
+The Licensee agrees to indemnify, defend, and hold harmless the Licensor and its affiliates, officers, directors, employees, and agents from and against any and all claims, liabilities, damages, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising from or relating to the Licensee's use of the Licensed Software or any violation of this Agreement by the Licensee.
+
+8. Governing Law and Jurisdiction
+
+This Agreement shall be governed by and construed in accordance with the laws of the State of New South Wales, Australia, without giving effect to any choice or conflict of law provision or rule. Any legal action or proceeding arising out of or relating to this Agreement shall be brought exclusively in the courts of New South Wales, Australia, and each party irrevocably submits to the jurisdiction of such courts.
+
+9. Entire Agreement
+
+This Agreement constitutes the entire agreement between the parties concerning the subject matter hereof and supersedes all prior or contemporaneous communications, understandings, and agreements, whether written or oral, between the parties regarding such subject matter.
+
+By accessing, using, or distributing the Licensed Software, the Licensee agrees to be bound by the terms and conditions of this Agreement. If the Licensee does not agree to the terms of this Agreement, the Licensee must not access, use, or distribute the Licensed Software.
+
+For inquiries or to obtain permission for Commercial Use, please contact:
+
+Dr. Jinjin Gu
+SupPixel Pty Ltd
+Email: jinjin.gu@suppixel.ai
