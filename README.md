@@ -148,7 +148,7 @@ We've just launched [SupPixel AI](suppixel.ai), an easy-to-use tool designed to 
 ---
 
 ## 📧 Contact
-If you have any question, please email `fanghuayu96@gmail.com`.
+If you have any question, please email `fanghuayu96@gmail.com` or `jinjin.gu@suppixel.ai`.
 
 ---
 ## Non-Commercial Use Only Declaration
@@ -160,4 +160,4 @@ This declaration does not in any way limit the rights under any open source lice
 
 IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-For inquiries or to obtain permission for commercial use, please contact Dr. Jinjin Gu (hellojasongt@gmail.com).
+For inquiries or to obtain permission for commercial use, please contact Dr. Jinjin Gu (jinjin.gu@suppixel.ai).
