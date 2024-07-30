@@ -51,12 +51,6 @@ model.first_stage_model.denoise_encoder_s1 = copy.deepcopy(model.first_stage_mod
 model.current_model = 'v0-Q'
 ckpt_Q, ckpt_F = load_QF_ckpt(args.opt)
 
-# load LLaVA
-if use_llava:
-    llava_agent = LLavaAgent(LLAVA_MODEL_PATH, device=LLaVA_device, load_8bit=args.load_8bit_llava, load_4bit=False)
-else:
-    llava_agent = None
-
 def stage1_process(input_image, gamma_correction):
     torch.cuda.set_device(SUPIR_device)
     LQ = HWC3(input_image)
@@ -74,6 +68,12 @@ def stage1_process(input_image, gamma_correction):
     return LQ
 
 def llave_process(input_image, temperature, top_p, qs=None):
+    # load LLaVA
+    if use_llava:
+        llava_agent = LLavaAgent(LLAVA_MODEL_PATH, device=LLaVA_device, load_8bit=args.load_8bit_llava, load_4bit=False)
+    else:
+        llava_agent = None
+        
     torch.cuda.set_device(LLaVA_device)
     if use_llava:
         LQ = HWC3(input_image)
@@ -82,6 +82,12 @@ def llave_process(input_image, temperature, top_p, qs=None):
     else:
         captions = ['LLaVA is not available. Please add text manually.']
     return captions[0]
+
+    # unload LLaVA
+    import gc
+    del llava_agent
+    gc.collect()
+    torch.cuda.empty_cache()
 
 def stage2_process(input_image, prompt, a_prompt, n_prompt, num_samples, upscale, edm_steps, s_stage1, s_stage2,
                    s_cfg, seed, s_churn, s_noise, color_fix_type, diff_dtype, ae_dtype, gamma_correction,
