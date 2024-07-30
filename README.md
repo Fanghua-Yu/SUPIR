@@ -10,7 +10,7 @@
 </p>
 
 ---
-#### 🚀 We're thrilled to announce the official launch of SupPixel AI! Experience the next level of image processing and upscaling with our cutting-edge AI technology based on SUPIR. Explore now for free at [suppixel.ai](https://supir.suppixel.ai/home).
+#### 🚀 We're thrilled to announce the official launch of SupPixel AI! Experience the next level of image processing and upscaling with our cutting-edge AI technology based on SUPIR. Explore now at [suppixel.ai](https://supir.suppixel.ai/home).
 
 ---
 ## 🔧 Dependencies and Installation
