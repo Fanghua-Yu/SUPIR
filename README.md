@@ -126,7 +126,7 @@ CUDA_VISIBLE_DEVICES=0,1 python gradio_demo.py --ip 0.0.0.0 --port 6688 --use_im
 
 ### Online App
 
-We've just launched [SupPixel AI](https://supir.suppixel.ai/home), an easy-to-use tool designed to help with high-quality image processing and upscaling. It builds on SUPIR. Whether you’re into photography, digital art, or just love playing around with image enhancement, we’d love for you to check it out. Everyone gets free credit to use~
+We've just launched [SupPixel AI](https://supir.suppixel.ai/home), an easy-to-use tool designed to help with high-quality image processing and upscaling. It builds on SUPIR. Whether you’re into photography, digital art, or just love playing around with image enhancement, we’d love for you to check it out.~
 
 <p align="center">
   <img src="assets/APP.png">
