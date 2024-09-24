@@ -25,7 +25,7 @@ if __name__ == '__main__':
     if len(args.files) > 0:
         review_files = args.files
     else:
-        review_files = [x for x in os.listdir(args.dir) if x.endswith('.jsonl') and (x.startswith('gpt4_text') or x.startswith('reviews_') or x.startswith('review_') or 'review' in args.dir)]
+        review_files = [x for x in os.listdir(args.dir) if x.endswith('.jsonl') and (x.startswith(('gpt4_text', 'reviews_')) or x.startswith('review_') or 'review' in args.dir)]
 
     for review_file in sorted(review_files):
         config = os.path.basename(review_file).replace('gpt4_text_', '').replace('.jsonl', '')
