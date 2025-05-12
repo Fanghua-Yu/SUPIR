@@ -80,8 +80,8 @@ Usage:
 --edm_steps              Numb of steps for EDM Sampling Scheduler. Default: 50
 --s_stage1               Control Strength of Stage1. Default: -1 (negative means invalid)
 --s_churn                Original hy-param of EDM. Default: 5
---s_noise                Original hy-param of EDM. Default: 1.003
---s_cfg                  Classifier-free guidance scale for prompts. Default: 7.5
+--s_noise                Original hy-param of EDM. Default: 1.01
+--s_cfg                  Classifier-free guidance scale for prompts. Default: 4.0
 --s_stage2               Control Strength of Stage2. Default: 1.0
 --num_samples            Number of samples for each input. Default: 1
 --a_prompt               Additive positive prompt for all inputs. 
@@ -93,7 +93,7 @@ Usage:
     cartoon, CG Style, 3D render, unreal engine, blurring, dirty, messy, worst quality, 
     low quality, frames, watermark, signature, jpeg artifacts, deformed, lowres, over-smooth'
 --color_fix_type         Color Fixing Type. Default: 'Wavelet'; Options: ['None', 'AdaIn', 'Wavelet']
---linear_CFG             Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg. Default: False
+--linear_CFG             Linearly (with sigma) increase CFG from 'spt_linear_CFG' to s_cfg. Default: True
 --linear_s_stage2        Linearly (with sigma) increase s_stage2 from 'spt_linear_s_stage2' to s_stage2. Default: False
 --spt_linear_CFG         Start point of linearly increasing CFG. Default: 1.0
 --spt_linear_s_stage2    Start point of linearly increasing s_stage2. Default: 0.0
