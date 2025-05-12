@@ -101,12 +101,30 @@ Usage:
 --diff_dtype             Inference data type of Diffusion. Default: 'fp16'; Options: ['fp32', 'fp16', 'bf16']
 ```
 
+### Empirical Hyperparameters Settings
+* The parameters listed generally have significant impact on the final image quality and appearance.
+
+1. s_stage2 adjustment:
+
+    Option 0: s_stage2 = 1.0 (higher fidelity, potentially lower visual quality)
+
+    Option 1: s_stage2 = 0.93 (higher visual quality, potentially lower fidelity)
+
+2. Quality-oriented settings (higher visual quality, potentially lower fidelity):
+
+    s_cfg = 6.0, spt_linear_CFG = 3.0, s_noise = 1.02
+
+3. Fidelity-oriented settings (closer to original input fidelity, may sacrifice some visual appeal):
+
+    s_cfg = 4.0, spt_linear_CFG = 1.0, s_noise = 1.01
+
 ### Python Script
+Examples:
 ```Shell
 # Seek for best quality for most cases
 CUDA_VISIBLE_DEVICES=0,1 python test.py --img_dir '/opt/data/private/LV_Dataset/DiffGLV-Test-All/RealPhoto60/LQ' --save_dir ./results-Q --SUPIR_sign Q --upscale 2
 # for light degradation and high fidelity
-CUDA_VISIBLE_DEVICES=0,1 python test.py --img_dir '/opt/data/private/LV_Dataset/DiffGLV-Test-All/RealPhoto60/LQ' --save_dir ./results-F --SUPIR_sign F --upscale 2 --s_cfg 4.0 --linear_CFG
+CUDA_VISIBLE_DEVICES=0,1 python test.py --img_dir '/opt/data/private/LV_Dataset/DiffGLV-Test-All/RealPhoto60/LQ' --save_dir ./results-F --SUPIR_sign F --upscale 2
 ```
 
 ### Gradio Demo
