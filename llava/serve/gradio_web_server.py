@@ -36,9 +36,9 @@ def get_conv_log_filename():
 
 
 def get_model_list():
-    ret = requests.post(args.controller_url + "/refresh_all_workers")
+    ret = requests.post(args.controller_url + "/refresh_all_workers", timeout=60)
     assert ret.status_code == 200
-    ret = requests.post(args.controller_url + "/list_models")
+    ret = requests.post(args.controller_url + "/list_models", timeout=60)
     models = ret.json()["models"]
     models.sort(key=lambda x: priority.get(x, x))
     logger.info(f"Models: {models}")
@@ -198,7 +198,7 @@ def http_bot(state, model_selector, temperature, top_p, max_new_tokens, request:
     # Query worker address
     controller_url = args.controller_url
     ret = requests.post(controller_url + "/get_worker_address",
-            json={"model": model_name})
+            json={"model": model_name}, timeout=60)
     worker_addr = ret.json()["address"]
     logger.info(f"model_name: {model_name}, worker_addr: {worker_addr}")
 
