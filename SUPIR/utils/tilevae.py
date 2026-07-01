@@ -361,7 +361,7 @@ def attn2task(task_queue, net):
     else:
         task_queue.append(('store_res', lambda x: x))
         task_queue.append(('pre_norm', net.norm))
-        if is_xformers_available:
+        if is_xformers_available():
             # task_queue.append(('attn', lambda x, net=net: attn_forward_new_xformers(net, x)))
             task_queue.append(
                 ('attn', lambda x, net=net: xformer_attn_forward(net, x)))
